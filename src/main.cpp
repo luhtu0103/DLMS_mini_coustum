@@ -178,7 +178,7 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
       if (o < -lim) o = -lim;
     }
   }
-  if (out->phase_180) o = -o;
+  if (!globalBypass && out->phase_180) o = -o;
   o *= master_linear; 
   if (out->is_mute) o = 0; 
   
