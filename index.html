@@ -1055,6 +1055,17 @@
         function showPage(pageId) { 
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
             document.getElementById(pageId).classList.add('active'); 
+            
+            // Auto-stop RTA jika pindah ke halaman lain
+            if (pageId !== 'page-rta' && rtaActive) {
+                toggleRTA();
+            }
+            if (pageId === 'page-rta') {
+                rtaPageActive = true;
+            } else {
+                rtaPageActive = false;
+            }
+            
             if(pageId === 'page-front') syncDashboardUI();
         }
 
