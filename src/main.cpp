@@ -1,22 +1,23 @@
 /*
- * DLMS Mini - ESP32-S3-N16R8 (Final Optimized)
- * Fitur: PCM1808 + 2x PCM5102, Biquad DSP, FFT, BLE, NVS Auto-Save
+ * DLMS Mini - ESP32-S3-N16R8 Bi-Amp/Tri-Amp Firmware V7
+ * Config: OUT1=MH-R, OUT2=MH-L, OUT3=Low(Stereo), OUT4=Sub(Stereo)
+ * Fix: BLE Notify, FFT Interleaved, Clipping Protection, NVS Save
  */
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>          // FIX: Wajib untuk BLE Notify yang stabil
+#include <BLE2902.h>          // Wajib untuk BLE Notify stabil
 #include "driver/i2s_std.h"
 #include <math.h>
 #include "esp_dsp.h"
-#include <Preferences.h>      // FITUR BARU: Untuk simpan settingan ke memori
+#include <Preferences.h>      // Simpan settingan ke memori internal
 
-// ==== UUID BLE ====
+// ==== UUID BLE (Sama dengan HTML) ====
 #define SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID    "0000ffe1-0000-1000-8000-00805f9b34fb"
 
-// ==== PIN I2S ====
+// ==== PIN I2S (PCM1808 + 2x PCM5102) ====
 #define I2S0_BCK  4
 #define I2S0_WS   5
 #define I2S0_DIN  6
@@ -29,7 +30,7 @@ i2s_chan_handle_t rx_handle = NULL;
 i2s_chan_handle_t tx0_handle = NULL;
 i2s_chan_handle_t tx1_handle = NULL;
 
-// ==== STRUKTUR DSP ====
+// ==== KONFIGURASI DSP ====
 #define SAMPLE_RATE 48000.0f
 #define FFT_SIZE 256
 
@@ -43,7 +44,7 @@ typedef struct {
   bool lpf_on; int lpf_slope; float lpf_freq;
   float peq_freq[3]; float peq_gain[3];
   float gain_db; bool is_mute; bool phase_180;
-  int routing; bool limiter_on; float limiter_thresh;
+  bool limiter_on; float limiter_thresh;
   biquad_t hpf; biquad_t lpf; biquad_t peq[3];
 } OutputChannel;
 
@@ -57,7 +58,7 @@ typedef struct {
 
 InputChannel inL, inR;
 float master_volume = 0.0;
-Preferences preferences; // Objek untuk simpan ke NVS
+Preferences preferences;
 
 // ==== VARIABEL FFT & BLE ====
 bool deviceConnected = false;
@@ -122,11 +123,17 @@ float processBiquad(float input, biquad_t *f) {
   return y;
 }
 
+// PROSES OUTPUT CHANNEL (Optimasi untuk Bi-Amp)
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear) {
   float o = 0;
-  if (out->routing == 0) o = sigL; 
-  else if (out->routing == 1) o = sigR; 
-  else o = (sigL + sigR) * 0.5f;
+  
+  // LOGIKA ROUTING BARU UNTUK BI-AMP/TRI-AMP
+  // OUT 1 & 2 dipaksa Stereo murni berdasarkan index channel
+  // OUT 3 & 4 dipaksa Mono Sum (L+R)/2
+  
+  if (out == &out1) o = sigR;       // OUT 1 = Mid-High R
+  else if (out == &out2) o = sigL;  // OUT 2 = Mid-High L
+  else o = (sigL + sigR) * 0.5f;    // OUT 3 & 4 = Low/Sub Stereo Sum
   
   o *= pow(10.0, out->gain_db / 20.0);
   if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
@@ -144,50 +151,57 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
   o *= master_linear; 
   if (out->is_mute) o = 0; 
   
-  // FIX: Cegah clipping digital yang merusak speaker
+  // FIX: Cegah clipping digital yang merusak speaker/DAC
   return constrain(o, -1.0f, 1.0f); 
 }
 
 // ==========================================
-// FITUR BARU: SIMPAN & MUAT DARI NVS (EEPROM)
+// FITUR SIMPAN & MUAT DARI NVS (EEPROM)
 // ==========================================
 void saveSettings() {
-  preferences.begin("dlms_settings", false);
+  preferences.begin("dlms_v7", false);
   preferences.putFloat("m_vol", master_volume);
-  
   preferences.putBool("inL_mute", inL.is_mute); preferences.putFloat("inL_gain", inL.gain_db);
   preferences.putFloat("inL_peq_f", inL.peq_freq); preferences.putFloat("inL_peq_g", inL.peq_gain);
   
-  // Simpan Out 1 sebagai contoh (bisa diperluas ke out2, out3, out4)
-  preferences.putBool("o1_mute", out1.is_mute); preferences.putFloat("o1_gain", out1.gain_db);
-  preferences.putFloat("o1_hpf_f", out1.hpf_freq); preferences.putBool("o1_hpf_on", out1.hpf_on);
-  preferences.putFloat("o1_peq1_f", out1.peq_freq[0]); preferences.putFloat("o1_peq1_g", out1.peq_gain[0]);
-  
+  for(int i=1; i<=4; i++) {
+    OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
+    String pfx = "o"+String(i)+"_";
+    preferences.putBool((pfx+"mute").c_str(), out->is_mute);
+    preferences.putFloat((pfx+"gain").c_str(), out->gain_db);
+    preferences.putFloat((pfx+"hpf_f").c_str(), out->hpf_freq);
+    preferences.putBool((pfx+"hpf_on").c_str(), out->hpf_on);
+    preferences.putFloat((pfx+"lpf_f").c_str(), out->lpf_freq);
+    preferences.putBool((pfx+"lpf_on").c_str(), out->lpf_on);
+  }
   preferences.end();
   Serial.println("💾 Settingan disimpan ke NVS!");
 }
 
 void loadSettings() {
-  preferences.begin("dlms_settings", true);
+  preferences.begin("dlms_v7", true);
   if (preferences.isKey("m_vol")) {
     master_volume = preferences.getFloat("m_vol", 0.0);
-    
     inL.is_mute = preferences.getBool("inL_mute", false);
     inL.gain_db = preferences.getFloat("inL_gain", 0.0);
     inL.peq_freq = preferences.getFloat("inL_peq_f", 1000.0);
     inL.peq_gain = preferences.getFloat("inL_peq_g", 0.0);
     calcBiquadPEQ(&inL.peq, inL.peq_freq, inL.peq_gain, 1.0);
 
-    out1.is_mute = preferences.getBool("o1_mute", false);
-    out1.gain_db = preferences.getFloat("o1_gain", 0.0);
-    out1.hpf_freq = preferences.getFloat("o1_hpf_f", 20.0);
-    out1.hpf_on = preferences.getBool("o1_hpf_on", false);
-    calcBiquadHighpass(&out1.hpf, out1.hpf_freq, 0.707);
-    
-    out1.peq_freq[0] = preferences.getFloat("o1_peq1_f", 1000.0);
-    out1.peq_gain[0] = preferences.getFloat("o1_peq1_g", 0.0);
-    calcBiquadPEQ(&out1.peq[0], out1.peq_freq[0], out1.peq_gain[0], 1.0);
-    
+    for(int i=1; i<=4; i++) {
+      OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
+      String pfx = "o"+String(i)+"_";
+      out->is_mute = preferences.getBool((pfx+"mute").c_str(), false);
+      out->gain_db = preferences.getFloat((pfx+"gain").c_str(), 0.0);
+      
+      out->hpf_freq = preferences.getFloat((pfx+"hpf_f").c_str(), 20.0);
+      out->hpf_on = preferences.getBool((pfx+"hpf_on").c_str(), false);
+      calcBiquadHighpass(&out->hpf, out->hpf_freq, 0.707);
+      
+      out->lpf_freq = preferences.getFloat((pfx+"lpf_f").c_str(), 20000.0);
+      out->lpf_on = preferences.getBool((pfx+"lpf_on").c_str(), false);
+      calcBiquadLowpass(&out->lpf, out->lpf_freq, 0.707);
+    }
     Serial.println("📂 Settingan dimuat dari NVS!");
   } else {
     Serial.println("⚠️ Tidak ada settingan tersimpan, menggunakan default.");
@@ -246,13 +260,6 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           else if (param == "PHASE") out->phase_180 = (nilai > 0);
         }
         else if (perintah == "MASTER") { master_volume = nilai; }
-        else if (perintah.startsWith("ROUTING_OUT")) {
-          int ch = perintah.substring(11,12).toInt();
-          OutputChannel *out = (ch == 1) ? &out1 : (ch == 2) ? &out2 : (ch == 3) ? &out3 : &out4;
-          if(perintah.endsWith("_L")) out->routing = (nilai > 0) ? 0 : 2; 
-          if(perintah.endsWith("_R")) out->routing = (nilai > 0) ? 1 : 2;
-        }
-        // FITUR BARU: Perintah Simpan & Muat dari HP
         else if (perintah == "SAVE_TO_NVS") { saveSettings(); }
         else if (perintah == "LOAD_FROM_NVS") { loadSettings(); }
       }
@@ -339,10 +346,11 @@ void audioProcessingTask(void *parameter) {
       sampL = processBiquad(sampL, &inL.peq);
       sampR = processBiquad(sampR, &inR.peq);
       
-      float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear);
-      float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear);
-      float finalO3 = processOutputChannel(&out3, sampL, sampR, master_linear);
-      float finalO4 = processOutputChannel(&out4, sampL, sampR, master_linear);
+      // Pemrosesan sesuai konfigurasi Bi-Amp Anda
+      float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear); // MH-R
+      float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear); // MH-L
+      float finalO3 = processOutputChannel(&out3, sampL, sampR, master_linear); // Low Stereo
+      float finalO4 = processOutputChannel(&out4, sampL, sampR, master_linear); // Sub Stereo
       
       // FIX: Constrain untuk mencegah overflow integer saat dikonversi ke int16_t
       tx0_buf[i]   = (int16_t)constrain(finalO1 * 32767.0f, -32768.0f, 32767.0f);
@@ -414,6 +422,7 @@ void setup() {
   dsps_wind_hann_f32(window, FFT_SIZE);
   dsps_fft2r_init_fc32(NULL, FFT_SIZE);
   
+  // Init I2S0 (RX ADC + TX DAC1)
   i2s_chan_config_t chan_cfg_0 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
   i2s_new_channel(&chan_cfg_0, &tx0_handle, &rx_handle);
   i2s_std_config_t std_cfg_0 = {
@@ -424,6 +433,7 @@ void setup() {
   i2s_channel_init_std_mode(rx_handle, &std_cfg_0); i2s_channel_init_std_mode(tx0_handle, &std_cfg_0);
   i2s_channel_enable(rx_handle); i2s_channel_enable(tx0_handle);
   
+  // Init I2S1 (TX DAC2)
   i2s_chan_config_t chan_cfg_1 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_1, I2S_ROLE_MASTER);
   i2s_new_channel(&chan_cfg_1, &tx1_handle, NULL);
   i2s_std_config_t std_cfg_1 = {
@@ -433,6 +443,7 @@ void setup() {
   };
   i2s_channel_init_std_mode(tx1_handle, &std_cfg_1); i2s_channel_enable(tx1_handle);
   
+  // Init BLE
   BLEDevice::init("DLMS_CUSTOM");
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -454,25 +465,20 @@ void setup() {
   BLEDevice::startAdvertising();
   
   // Init Filter Default
-  calcBiquadHighpass(&out1.hpf, 20, 0.707); calcBiquadLowpass(&out1.lpf, 20000, 0.707);
-  calcBiquadHighpass(&out2.hpf, 20, 0.707); calcBiquadLowpass(&out2.lpf, 20000, 0.707);
-  calcBiquadHighpass(&out3.hpf, 20, 0.707); calcBiquadLowpass(&out3.lpf, 20000, 0.707);
-  calcBiquadHighpass(&out4.hpf, 20, 0.707); calcBiquadLowpass(&out4.lpf, 20000, 0.707);
-  calcBiquadPEQ(&inL.peq, 1000, 0, 1.0); calcBiquadPEQ(&inR.peq, 1000, 0, 1.0);
-  for(int i=0; i<3; i++) { 
-    calcBiquadPEQ(&out1.peq[i], 1000, 0, 1.0); 
-    calcBiquadPEQ(&out2.peq[i], 1000, 0, 1.0); 
-    calcBiquadPEQ(&out3.peq[i], 1000, 0, 1.0); 
-    calcBiquadPEQ(&out4.peq[i], 1000, 0, 1.0); 
+  for(int i=1; i<=4; i++) {
+    OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
+    calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
+    for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
   }
+  calcBiquadPEQ(&inL.peq, 1000, 0, 1.0); calcBiquadPEQ(&inR.peq, 1000, 0, 1.0);
   
-  // MUAT SETTINGAN DARI MEMORI (Opsi 2)
+  // MUAT SETTINGAN DARI MEMORI
   loadSettings();
   
   xTaskCreatePinnedToCore(audioProcessingTask, "AudioTask", 16384, NULL, 5, NULL, 1);
   xTaskCreatePinnedToCore(bleTxTask, "BleTxTask", 8192, NULL, 3, NULL, 0);
   
-  Serial.println("🚀 Firmware V7 FINAL Siap! Sistem telah diaudit & dioptimasi.");
+  Serial.println("🚀 Firmware V7 Bi-Amp Siap! Sistem telah diaudit & dioptimasi.");
 }
 
 void loop() {
