@@ -650,7 +650,8 @@
             }
         }
         
-        function onDisconnected() { 
+        function onDisconnected() {
+            bleCommandQueue.length = 0;
             document.body.classList.remove('ble-active');
             document.body.classList.remove('reactive-glow', 'reactive-bass');
             document.querySelectorAll('.led-block, .mini-led').forEach(led => { led.style.backgroundColor = ''; led.style.boxShadow = ''; });
@@ -666,7 +667,12 @@
         
         async function sendBLEData(text) {
             if (!bleCharacteristic || !bleDevice?.gatt?.connected) return;
-            bleCommandQueue.push(String(text));
+            const command = String(text);
+            const commandKey = command.split(',')[0];
+            // Coalesce pending updates for the same control while dragging sliders.
+            const queuedIndex = bleCommandQueue.findIndex(item => item.split(',')[0] === commandKey);
+            if (queuedIndex >= 0) bleCommandQueue[queuedIndex] = command;
+            else bleCommandQueue.push(command);
             if (bleQueueBusy) return;
             bleQueueBusy = true;
             try {
