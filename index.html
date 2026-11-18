@@ -400,6 +400,7 @@
                 <div class="control-card"><div class="card-header"><div class="card-title">INPUT PEQ (1-BAND)</div></div><div class="peq-row"><span class="peq-label">F</span><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('in_peq_freq', -10)">&lt;</button><input class="peq-slider" type="range" id="in_peq_freq" min="20" max="20000" value="1000" oninput="updateInputGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('in_peq_freq', 10)">&gt;</button><div class="peq-text" id="in_peq_freqVal" style="color:var(--neon-blue);">1.0k</div></div><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('in_peq_gain', -1)">&lt;</button><input class="peq-slider" type="range" id="in_peq_gain" min="-15" max="15" value="0" oninput="updateInputGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('in_peq_gain', 1)">&gt;</button><div class="peq-text" id="in_peq_gainVal">0</div></div></div></div>
             </div>
             <div class="graph-col" style="padding: 10px; align-items: center;">
+                ‎<button id="btn-rta" onclick="toggleRTA()" style="background: var(--panel-bg); color: var(--neon-green); border: 1px solid var(--neon-green); padding: 5px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer; margin-bottom: 10px;">🎤 MULAI RTA MIC</button>
                 <h3 style="color: var(--text-dim); font-size: 10px; text-align: center; margin: 0 0 10px 0;">SPECTRUM ANALYZER</h3>
                 <div class="spectrum-container" style="display: flex; justify-content: space-between; align-items: flex-end; height: 80%; width: 100%; border-bottom: 1px solid #1a2a40; padding-bottom: 2px;">
                     <div class="spectrum-bar" id="spec-bar-0" style="width: 10%; height: 0%; background: var(--neon-blue); transition: height 0.1s; border-radius: 2px 2px 0 0;"></div>
@@ -998,6 +999,90 @@
             .catch(err => console.log('❌ Gagal daftar SW:', err));
         });
       }
+    </script>
+    <script>
+       // === FITUR RTA MENGGUNAKAN MIKROFON HP ===
+       let audioContext, analyser, microphone, dataArray;
+       let rtaActive = false;
+
+       async function toggleRTA() {
+           const btn = document.getElementById('btn-rta');
+           
+           if (!rtaActive) {
+               try {
+                   // Minta izin mikrofon
+                   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                   audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                   analyser = audioContext.createAnalyser();
+                   microphone = audioContext.createMediaStreamSource(stream);
+                   microphone.connect(analyser);
+                   
+                   analyser.fftSize = 256; 
+                   dataArray = new Uint8Array(analyser.frequencyBinCount);
+                   
+                   rtaActive = true;
+                   btn.innerText = "🛑 STOP RTA";
+                   btn.style.color = "var(--neon-red)";
+                   btn.style.borderColor = "var(--neon-red)";
+                   
+                   updateRTA(); // Mulai loop update grafik
+               } catch (err) {
+                   alert("⚠️ Gagal akses mikrofon: " + err.message + "\nPastikan Anda mengizinkan akses mic di browser.");
+               }
+           } else {
+               // Matikan
+               rtaActive = false;
+               if (audioContext) audioContext.close();
+               btn.innerText = "🎤 MULAI RTA MIC";
+               btn.style.color = "var(--neon-green)";
+               btn.style.borderColor = "var(--neon-green)";
+               
+               // Reset grafik ke 0
+               for(let i=0; i<7; i++) {
+                   let bar = document.getElementById('spec-bar-'+i);
+                   if(bar) bar.style.height = '0%';
+               }
+           }
+       }
+
+       function updateRTA() {
+           if (!rtaActive) return;
+           requestAnimationFrame(updateRTA);
+           
+           analyser.getByteFrequencyData(dataArray);
+           
+           // Mapping frekuensi ke 7 band (mirip dengan ESP32)
+           // Band 0: Sub-Bass, Band 1: Bass, Band 2: Low-Mid, dst.
+           const bands = [
+               [0, 3],    // ~60-150 Hz
+               [3, 6],    // ~150-300 Hz
+               [6, 12],   // ~300-600 Hz
+               [12, 25],  // ~600-1.2k Hz
+               [25, 50],  // ~1.2k-3k Hz
+               [50, 90],  // ~3k-8k Hz
+               [90, 120]  // ~8k-16k Hz
+           ];
+
+           for (let i = 0; i < 7; i++) {
+               let sum = 0;
+               let count = 0;
+               for (let j = bands[i][0]; j < bands[i][1] && j < dataArray.length; j++) {
+                   sum += dataArray[j];
+                   count++;
+               }
+               let avg = count > 0 ? sum / count : 0;
+               let percent = (avg / 255) * 100; // Konversi ke persen
+               
+               let bar = document.getElementById('spec-bar-'+i);
+               if (bar) {
+                   bar.style.height = Math.max(2, percent) + '%';
+                   // Warna dinamis
+                   if (percent > 85) bar.style.background = 'var(--neon-red)';
+                   else if (percent > 65) bar.style.background = 'var(--neon-yellow)';
+                   else bar.style.background = 'var(--neon-blue)';
+               }
+           }
+       }
     </script>
 </body>
 </html>
