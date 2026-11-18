@@ -1,22 +1,21 @@
 /*
- * DLMS Mini - ESP32-S3-N16R8 Bi-Amp/Tri-Amp Firmware V7
- * Routing: FLEKSIBEL (user bisa pilih L/R/Both via aplikasi)
- * Default: OUT1=R, OUT2=L, OUT3=Both, OUT4=Both
- * Crossover Default: 3-Way (Sub 80Hz, Low 80-300Hz, MH 300Hz+)
+ * DLMS Mini - ESP32-S3-N16R8 Firmware V8 (Delay + Bi-Amp Ready)
+ * Fitur: PCM1808 + 2x PCM5102, Biquad DSP, FFT, BLE, Delay Line (Time Alignment)
  */
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>
+#include <BLE2902.h>          // FIX: Wajib untuk BLE Notify stabil
 #include "driver/i2s_std.h"
 #include <math.h>
 #include "esp_dsp.h"
-#include <Preferences.h>
 
+// ==== UUID BLE ====
 #define SERVICE_UUID           "0000ffe0-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID    "0000ffe1-0000-1000-8000-00805f9b34fb"
 
+// ==== PIN I2S ====
 #define I2S0_BCK  4
 #define I2S0_WS   5
 #define I2S0_DIN  6
@@ -29,8 +28,10 @@ i2s_chan_handle_t rx_handle = NULL;
 i2s_chan_handle_t tx0_handle = NULL;
 i2s_chan_handle_t tx1_handle = NULL;
 
+// ==== KONFIGURASI DSP ====
 #define SAMPLE_RATE 48000.0f
 #define FFT_SIZE 256
+#define MAX_DELAY_SAMPLES 512  // Max delay ~10.6ms @ 48kHz
 
 typedef struct {
   float b0, b1, b2, a1, a2;
@@ -41,9 +42,10 @@ typedef struct {
   bool hpf_on; int hpf_slope; float hpf_freq;
   bool lpf_on; int lpf_slope; float lpf_freq;
   float peq_freq[3]; float peq_gain[3];
-  float gain_db; bool is_mute; bool phase_180;
-  int routing; // 0=L, 1=R, 2=Both, 3=None
-  bool limiter_on; float limiter_thresh;
+  float gain_db; 
+  float delay_ms; // FITUR BARU: Delay Time (ms)
+  bool is_mute; bool phase_180;
+  int routing; bool limiter_on; float limiter_thresh;
   biquad_t hpf; biquad_t lpf; biquad_t peq[3];
 } OutputChannel;
 
@@ -57,8 +59,12 @@ typedef struct {
 
 InputChannel inL, inR;
 float master_volume = 0.0;
-Preferences preferences;
 
+// ==== VARIABEL DELAY LINE ====
+float delay_line[4][MAX_DELAY_SAMPLES];
+int delay_write_pos[4] = {0, 0, 0, 0};
+
+// ==== VARIABEL BLE & FFT ====
 bool deviceConnected = false;
 BLECharacteristic *g_levelChar = nullptr;
 float *fft_buffer = NULL;
@@ -71,7 +77,7 @@ volatile int osc_buffer[50] = {0};
 int fft_sample_count = 0;
 
 // ==========================================
-// FUNGSI BIQUAD FILTER
+// FUNGSI MATEMATIKA FILTER (BIQUAD)
 // ==========================================
 void calcBiquadHighpass(biquad_t *f, float freq, float Q) {
   if(freq < 20) freq = 20; 
@@ -122,176 +128,75 @@ float processBiquad(float input, biquad_t *f) {
 }
 
 // ==========================================
-// PROSES OUTPUT - ROUTING FLEKSIBEL
+// FUNGSI DELAY (TIME ALIGNMENT)
 // ==========================================
-float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear) {
+float applyDelay(float input, int ch, float delay_ms) {
+  // Konversi ms ke sampel (48 sampel per 1ms)
+  int delay_samples = (int)(delay_ms * (SAMPLE_RATE / 1000.0f));
+  
+  if (delay_samples <= 0) return input;
+  if (delay_samples >= MAX_DELAY_SAMPLES) delay_samples = MAX_DELAY_SAMPLES - 1;
+
+  // Tulis sampel baru ke buffer
+  delay_line[ch][delay_write_pos[ch]] = input;
+  
+  // Hitung posisi baca (mundur sebanyak delay_samples)
+  int read_pos = (delay_write_pos[ch] - delay_samples + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
+  float output = delay_line[ch][read_pos];
+  
+  // Majukan posisi tulis (circular buffer)
+  delay_write_pos[ch] = (delay_write_pos[ch] + 1) % MAX_DELAY_SAMPLES;
+  
+  return output;
+}
+
+// ==========================================
+// PROSES OUTPUT CHANNEL
+// ==========================================
+float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
   float o = 0;
   
-  // Routing tetap fleksibel sesuai pilihan user di aplikasi
-  if (out->routing == 0) o = sigL;           // L only
-  else if (out->routing == 1) o = sigR;      // R only
-  else if (out->routing == 2) o = (sigL + sigR) * 0.5f;  // Both (mono sum)
-  else o = 0;                                 // None (mute)
+  // Routing
+  if (out->routing == 0) o = sigL; 
+  else if (out->routing == 1) o = sigR; 
+  else o = (sigL + sigR) * 0.5f;
   
+  // Gain
   o *= pow(10.0, out->gain_db / 20.0);
   
-  if (out->hpf_on) { 
-    o = processBiquad(o, &out->hpf); 
-    if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); 
-  }
-  if (out->lpf_on) { 
-    o = processBiquad(o, &out->lpf); 
-    if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); 
-  }
+  // HPF
+  if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
+  // LPF
+  if (out->lpf_on) { o = processBiquad(o, &out->lpf); if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); }
   
+  // PEQ 3-Band
   o = processBiquad(o, &out->peq[0]); 
   o = processBiquad(o, &out->peq[1]); 
   o = processBiquad(o, &out->peq[2]);
   
+  // DELAY (Time Alignment) - Diletakkan setelah EQ
+  o = applyDelay(o, ch_idx, out->delay_ms);
+  
+  // Phase
   if (out->phase_180) o = -o;
   
+  // Limiter
   if (out->limiter_on) { 
     float lim = pow(10.0, out->limiter_thresh / 20.0); 
     if (o > lim) o = lim; 
     if (o < -lim) o = -lim; 
   }
   
+  // Master Volume & Mute
   o *= master_linear; 
   if (out->is_mute) o = 0; 
   
+  // Cegah Clipping
   return constrain(o, -1.0f, 1.0f); 
 }
 
 // ==========================================
-// NVS SAVE/LOAD
-// ==========================================
-void saveSettings() {
-  preferences.begin("dlms_v7", false);
-  preferences.putFloat("m_vol", master_volume);
-  
-  for(int i=1; i<=4; i++) {
-    OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
-    String pfx = "o"+String(i)+"_";
-    preferences.putBool((pfx+"mute").c_str(), out->is_mute);
-    preferences.putFloat((pfx+"gain").c_str(), out->gain_db);
-    preferences.putFloat((pfx+"hpf_f").c_str(), out->hpf_freq);
-    preferences.putBool((pfx+"hpf_on").c_str(), out->hpf_on);
-    preferences.putInt((pfx+"hpf_s").c_str(), out->hpf_slope);
-    preferences.putFloat((pfx+"lpf_f").c_str(), out->lpf_freq);
-    preferences.putBool((pfx+"lpf_on").c_str(), out->lpf_on);
-    preferences.putInt((pfx+"lpf_s").c_str(), out->lpf_slope);
-    preferences.putInt((pfx+"routing").c_str(), out->routing);
-    preferences.putBool((pfx+"phase").c_str(), out->phase_180);
-    preferences.putBool((pfx+"lim_on").c_str(), out->limiter_on);
-    preferences.putFloat((pfx+"lim_t").c_str(), out->limiter_thresh);
-    for(int j=0; j<3; j++) {
-      preferences.putFloat((pfx+"peq"+String(j)+"_f").c_str(), out->peq_freq[j]);
-      preferences.putFloat((pfx+"peq"+String(j)+"_g").c_str(), out->peq_gain[j]);
-    }
-  }
-  
-  preferences.putBool("inL_mute", inL.is_mute); 
-  preferences.putFloat("inL_gain", inL.gain_db);
-  preferences.putFloat("inL_peq_f", inL.peq_freq); 
-  preferences.putFloat("inL_peq_g", inL.peq_gain);
-  preferences.putBool("inR_mute", inR.is_mute); 
-  preferences.putFloat("inR_gain", inR.gain_db);
-  preferences.putFloat("inR_peq_f", inR.peq_freq); 
-  preferences.putFloat("inR_peq_g", inR.peq_gain);
-  
-  preferences.end();
-  Serial.println("💾 Settingan disimpan ke NVS!");
-}
-
-void loadSettings() {
-  preferences.begin("dlms_v7", true);
-  if (preferences.isKey("m_vol")) {
-    master_volume = preferences.getFloat("m_vol", 0.0);
-    
-    for(int i=1; i<=4; i++) {
-      OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
-      String pfx = "o"+String(i)+"_";
-      
-      out->is_mute = preferences.getBool((pfx+"mute").c_str(), false);
-      out->gain_db = preferences.getFloat((pfx+"gain").c_str(), 0.0);
-      out->routing = preferences.getInt((pfx+"routing").c_str(), 2); // Default Both
-      out->phase_180 = preferences.getBool((pfx+"phase").c_str(), false);
-      out->limiter_on = preferences.getBool((pfx+"lim_on").c_str(), true);
-      out->limiter_thresh = preferences.getFloat((pfx+"lim_t").c_str(), 0.0);
-      
-      out->hpf_freq = preferences.getFloat((pfx+"hpf_f").c_str(), 20.0);
-      out->hpf_on = preferences.getBool((pfx+"hpf_on").c_str(), false);
-      out->hpf_slope = preferences.getInt((pfx+"hpf_s").c_str(), 24);
-      calcBiquadHighpass(&out->hpf, out->hpf_freq, 0.707);
-      
-      out->lpf_freq = preferences.getFloat((pfx+"lpf_f").c_str(), 20000.0);
-      out->lpf_on = preferences.getBool((pfx+"lpf_on").c_str(), false);
-      out->lpf_slope = preferences.getInt((pfx+"lpf_s").c_str(), 24);
-      calcBiquadLowpass(&out->lpf, out->lpf_freq, 0.707);
-      
-      for(int j=0; j<3; j++) {
-        out->peq_freq[j] = preferences.getFloat((pfx+"peq"+String(j)+"_f").c_str(), 1000.0);
-        out->peq_gain[j] = preferences.getFloat((pfx+"peq"+String(j)+"_g").c_str(), 0.0);
-        calcBiquadPEQ(&out->peq[j], out->peq_freq[j], out->peq_gain[j], 1.0);
-      }
-    }
-    
-    inL.is_mute = preferences.getBool("inL_mute", false);
-    inL.gain_db = preferences.getFloat("inL_gain", 0.0);
-    inL.peq_freq = preferences.getFloat("inL_peq_f", 1000.0);
-    inL.peq_gain = preferences.getFloat("inL_peq_g", 0.0);
-    calcBiquadPEQ(&inL.peq, inL.peq_freq, inL.peq_gain, 1.0);
-    
-    inR.is_mute = preferences.getBool("inR_mute", false);
-    inR.gain_db = preferences.getFloat("inR_gain", 0.0);
-    inR.peq_freq = preferences.getFloat("inR_peq_f", 1000.0);
-    inR.peq_gain = preferences.getFloat("inR_peq_g", 0.0);
-    calcBiquadPEQ(&inR.peq, inR.peq_freq, inR.peq_gain, 1.0);
-    
-    Serial.println("📂 Settingan dimuat dari NVS!");
-  } else {
-    Serial.println("⚠️ First boot - menggunakan default Bi-Amp 3-Way");
-  }
-  preferences.end();
-}
-
-// ==========================================
-// DEFAULT SETTING BI-AMP 3-WAY
-// ==========================================
-void applyDefaultBiAmpSettings() {
-  // OUT 1: Mid-High R (Default routing = R)
-  out1.routing = 1;  // R
-  out1.hpf_on = true; out1.hpf_freq = 300; out1.hpf_slope = 24;
-  out1.lpf_on = false; out1.lpf_freq = 20000;
-  calcBiquadHighpass(&out1.hpf, 300, 0.707);
-  calcBiquadLowpass(&out1.lpf, 20000, 0.707);
-  
-  // OUT 2: Mid-High L (Default routing = L)
-  out2.routing = 0;  // L
-  out2.hpf_on = true; out2.hpf_freq = 300; out2.hpf_slope = 24;
-  out2.lpf_on = false; out2.lpf_freq = 20000;
-  calcBiquadHighpass(&out2.hpf, 300, 0.707);
-  calcBiquadLowpass(&out2.lpf, 20000, 0.707);
-  
-  // OUT 3: Low Stereo (Default routing = Both)
-  out3.routing = 2;  // Both
-  out3.hpf_on = true; out3.hpf_freq = 80; out3.hpf_slope = 24;
-  out3.lpf_on = true; out3.lpf_freq = 300; out3.lpf_slope = 24;
-  calcBiquadHighpass(&out3.hpf, 80, 0.707);
-  calcBiquadLowpass(&out3.lpf, 300, 0.707);
-  
-  // OUT 4: Sub Stereo (Default routing = Both)
-  out4.routing = 2;  // Both
-  out4.hpf_on = false; out4.hpf_freq = 20;
-  out4.lpf_on = true; out4.lpf_freq = 80; out4.lpf_slope = 24;
-  calcBiquadHighpass(&out4.hpf, 20, 0.707);
-  calcBiquadLowpass(&out4.lpf, 80, 0.707);
-  
-  Serial.println("✅ Default Bi-Amp 3-Way diterapkan!");
-}
-
-// ==========================================
-// BLE CALLBACKS
+// CALLBACK BLE
 // ==========================================
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) { deviceConnected = true; Serial.println("✅ HP Terhubung"); }
@@ -335,6 +240,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           else if (param == "PEQ3FREQ") { out->peq_freq[2] = nilai; calcBiquadPEQ(&out->peq[2], nilai, out->peq_gain[2], 1.0); }
           else if (param == "PEQ3GAIN") { out->peq_gain[2] = nilai; calcBiquadPEQ(&out->peq[2], out->peq_freq[2], nilai, 1.0); }
           else if (param == "GAIN") out->gain_db = nilai; 
+          else if (param == "DELAY") out->delay_ms = nilai; // FITUR BARU: Simpan nilai delay
           else if (param == "LIMIT_ON") out->limiter_on = (nilai > 0);
           else if (param == "LIMIT") out->limiter_thresh = nilai; 
           else if (param == "MUTE") out->is_mute = (nilai > 0);
@@ -344,29 +250,20 @@ class MyCallbacks: public BLECharacteristicCallbacks {
         else if (perintah.startsWith("ROUTING_OUT")) {
           int ch = perintah.substring(11,12).toInt();
           OutputChannel *out = (ch == 1) ? &out1 : (ch == 2) ? &out2 : (ch == 3) ? &out3 : &out4;
-          if(perintah.endsWith("_L")) {
-            if (nilai > 0) out->routing = (out->routing == 1) ? 2 : 0;
-            else out->routing = (out->routing == 2) ? 1 : 3;
-          }
-          if(perintah.endsWith("_R")) {
-            if (nilai > 0) out->routing = (out->routing == 0) ? 2 : 1;
-            else out->routing = (out->routing == 2) ? 0 : 3;
-          }
+          if(perintah.endsWith("_L")) out->routing = (nilai > 0) ? 0 : 2; 
+          if(perintah.endsWith("_R")) out->routing = (nilai > 0) ? 1 : 2;
         }
-        else if (perintah == "SAVE_TO_NVS") { saveSettings(); }
-        else if (perintah == "LOAD_FROM_NVS") { loadSettings(); }
-        else if (perintah == "RESET_BIAMP") { applyDefaultBiAmpSettings(); saveSettings(); }
       }
     }
   }
 };
 
 // ==========================================
-// FFT
+// FUNGSI FFT (SPECTRUM ANALYZER)
 // ==========================================
 void processFFT() {
   for (int i = 0; i < FFT_SIZE; i++) { 
-    fft_input[i * 2] = fft_buffer[i] * window[i];
+    fft_input[i * 2] = fft_buffer[i] * window[i]; 
     fft_input[i * 2 + 1] = 0.0f;
   }
   dsps_fft2r_fc32(fft_input, FFT_SIZE);
@@ -394,7 +291,7 @@ void processFFT() {
 }
 
 // ==========================================
-// AUDIO TASK (CORE 1)
+// TASK 1: PEMROSESAN AUDIO (CORE 1)
 // ==========================================
 void audioProcessingTask(void *parameter) {
   int16_t rx_buf[512 * 2];
@@ -439,10 +336,11 @@ void audioProcessingTask(void *parameter) {
       sampL = processBiquad(sampL, &inL.peq);
       sampR = processBiquad(sampR, &inR.peq);
       
-      float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear);
-      float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear);
-      float finalO3 = processOutputChannel(&out3, sampL, sampR, master_linear);
-      float finalO4 = processOutputChannel(&out4, sampL, sampR, master_linear);
+      // Pemrosesan dengan Delay (ch_idx: 0,1,2,3)
+      float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear, 0);
+      float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear, 1);
+      float finalO3 = processOutputChannel(&out3, sampL, sampR, master_linear, 2);
+      float finalO4 = processOutputChannel(&out4, sampL, sampR, master_linear, 3);
       
       tx0_buf[i]   = (int16_t)constrain(finalO1 * 32767.0f, -32768.0f, 32767.0f);
       tx0_buf[i+1] = (int16_t)constrain(finalO2 * 32767.0f, -32768.0f, 32767.0f);
@@ -471,7 +369,7 @@ void audioProcessingTask(void *parameter) {
 }
 
 // ==========================================
-// BLE TX TASK (CORE 0)
+// TASK 2: PENGIRIM DATA VISUAL (CORE 0)
 // ==========================================
 void bleTxTask(void *parameter) {
   char buf[256];
@@ -501,17 +399,23 @@ void bleTxTask(void *parameter) {
 }
 
 // ==========================================
-// SETUP
+// SETUP UTAMA
 // ==========================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n🎛️ DLMS Mini Bi-Amp V7 Starting...");
+  Serial.println("\n🎛️ DLMS Mini V8 (Delay Enabled) Starting...");
   
   fft_buffer = (float*)malloc(sizeof(float) * FFT_SIZE);
   fft_input = (float*)malloc(sizeof(float) * FFT_SIZE * 2);
   window = (float*)malloc(sizeof(float) * FFT_SIZE);
   dsps_wind_hann_f32(window, FFT_SIZE);
   dsps_fft2r_init_fc32(NULL, FFT_SIZE);
+  
+  // Inisialisasi Buffer Delay (Bersihkan memori)
+  for(int i=0; i<4; i++) {
+    for(int j=0; j<MAX_DELAY_SAMPLES; j++) delay_line[i][j] = 0.0f;
+    delay_write_pos[i] = 0;
+  }
   
   // I2S0: RX ADC + TX DAC1
   i2s_chan_config_t chan_cfg_0 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
@@ -521,10 +425,8 @@ void setup() {
     .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
     .gpio_cfg = { .mclk = I2S_GPIO_UNUSED, .bclk = (gpio_num_t)I2S0_BCK, .ws = (gpio_num_t)I2S0_WS, .dout = (gpio_num_t)I2S0_DOUT, .din = (gpio_num_t)I2S0_DIN },
   };
-  i2s_channel_init_std_mode(rx_handle, &std_cfg_0); 
-  i2s_channel_init_std_mode(tx0_handle, &std_cfg_0);
-  i2s_channel_enable(rx_handle); 
-  i2s_channel_enable(tx0_handle);
+  i2s_channel_init_std_mode(rx_handle, &std_cfg_0); i2s_channel_init_std_mode(tx0_handle, &std_cfg_0);
+  i2s_channel_enable(rx_handle); i2s_channel_enable(tx0_handle);
   
   // I2S1: TX DAC2
   i2s_chan_config_t chan_cfg_1 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_1, I2S_ROLE_MASTER);
@@ -534,10 +436,7 @@ void setup() {
     .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
     .gpio_cfg = { .mclk = I2S_GPIO_UNUSED, .bclk = (gpio_num_t)I2S1_BCK, .ws = (gpio_num_t)I2S1_WS, .dout = (gpio_num_t)I2S1_DOUT, .din = I2S_GPIO_UNUSED },
   };
-  i2s_channel_init_std_mode(tx1_handle, &std_cfg_1); 
-  i2s_channel_enable(tx1_handle);
-  
-  Serial.println("✅ I2S Ready (PCM1808 + 2x PCM5102)");
+  i2s_channel_init_std_mode(tx1_handle, &std_cfg_1); i2s_channel_enable(tx1_handle);
   
   // BLE
   BLEDevice::init("DLMS_CUSTOM");
@@ -558,18 +457,19 @@ void setup() {
   pAdvertising->addServiceUUID(SERVICE_UUID);
   BLEDevice::startAdvertising();
   
-  Serial.println("✅ BLE Ready! Nama: DLMS_CUSTOM");
-  
-  // Load setting dari NVS, jika tidak ada pakai default Bi-Amp
-  loadSettings();
-  if (!preferences.isKey("m_vol")) {
-    applyDefaultBiAmpSettings();
+  // Init Filter Default
+  for(int i=1; i<=4; i++) {
+    OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
+    out->delay_ms = 0.0; // Default delay 0ms
+    calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
+    for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
   }
+  calcBiquadPEQ(&inL.peq, 1000, 0, 1.0); calcBiquadPEQ(&inR.peq, 1000, 0, 1.0);
   
   xTaskCreatePinnedToCore(audioProcessingTask, "AudioTask", 16384, NULL, 5, NULL, 1);
   xTaskCreatePinnedToCore(bleTxTask, "BleTxTask", 8192, NULL, 3, NULL, 0);
   
-  Serial.println("🚀 Firmware V7 Bi-Amp Siap! Routing fleksibel.");
+  Serial.println("🚀 Firmware V8 Siap! Delay Line Aktif.");
 }
 
 void loop() {
