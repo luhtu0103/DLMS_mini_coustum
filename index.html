@@ -1325,7 +1325,7 @@
             alert(feature + ' belum didukung oleh firmware DLMS Mini saat ini.');
         }
 
-        function toggleSaveMode() { saveMode = !saveMode; let btnSave = document.getElementById('btn-save'); if(saveMode) { btnSave.classList.add('saving'); btnSave.innerText = 'PILIH P1/P2/P3'; } else { btnSave.classList.remove('saving'); btnSave.innerText = 'SAVE'; } }
+        function toggleSaveMode() { saveMode = !saveMode; let btnSave = document.getElementById('btn-save'); if(saveMode) { btnSave.classList.add('saving'); btnSave.innerText = 'PILIH P1-P4'; } else { btnSave.classList.remove('saving'); btnSave.innerText = 'SAVE'; } }
         function handlePresetClick(presetNum) {
             if (document.getElementById('page-setting').classList.contains('active')) saveCurrentUI();
             if (document.getElementById('page-input-setting').classList.contains('active')) saveInputUI();
