@@ -188,6 +188,43 @@
         .guide-content ul { font-size: 11px; color: #ccc; padding-left: 20px; line-height: 1.5; }
         .guide-content li { margin-bottom: 5px; }
         .highlight { color: var(--neon-green); font-weight: bold; }
+
+        
+        /* === GRID 3x3 MENU === */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
+            margin-top: 10px;
+            height: auto;
+            flex-shrink: 0;
+        }
+        .quick-btn {
+            min-width: 0;
+            background: var(--panel-bg);
+            color: var(--text-dim);
+            border: 1px solid #1a2a40;
+            border-radius: 6px;
+            padding: 10px 2px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: 0.2s;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        .quick-btn:active { transform: scale(0.95); }
+        .quick-btn.active-menu {
+            color: var(--neon-green);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+        .quick-btn .icon { font-size: 16px; line-height: 1; }
+        .quick-btn:focus-visible { outline: 1px solid var(--neon-blue); outline-offset: 1px; }
     </style>
 </head>
 <body>
@@ -231,24 +268,35 @@
                     </div>
                 </div>
 
-                <div class="out-volumes">
-                    <div class="out-vol-row"><span style="color:var(--color-out1);">O1</span><input type="range" id="dash-vol-1" min="-60" max="12" value="0" oninput="syncVolFromDash(1, this.value)"></div>
-                    <div class="out-vol-row"><span style="color:var(--color-out2);">O2</span><input type="range" id="dash-vol-2" min="-60" max="12" value="0" oninput="syncVolFromDash(2, this.value)"></div>
-                    <div class="out-vol-row"><span style="color:var(--color-out3);">O3</span><input type="range" id="dash-vol-3" min="-60" max="12" value="0" oninput="syncVolFromDash(3, this.value)"></div>
-                    <div class="out-vol-row"><span style="color:var(--color-out4);">O4</span><input type="range" id="dash-vol-4" min="-60" max="12" value="0" oninput="syncVolFromDash(4, this.value)"></div>
-                </div>
-
-                <div class="preset-bar">
-                    <button class="preset-btn active" id="btn-p1" onclick="handlePresetClick(1)">P1</button>
-                    <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)">P2</button>
-                    <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)">P3</button>
-                    <button class="preset-btn bypass" onclick="toggleBypass(this)">BYPASS</button>
-                    <!-- TOMBOL SIGNAL GENERATOR -->
-                    <div style="display: flex; gap: 3px; margin-top: 4px; height: 18px; flex-shrink: 0;">
-                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,0')" style="border-color: var(--neon-red); color: var(--neon-red);">OFF</button>
-                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,1')" style="border-color: var(--neon-yellow); color: var(--neon-yellow);">PINK</button>
-                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,2')" style="border-color: var(--neon-blue); color: var(--neon-blue);">1kHz</button>
-                    </div>
+                <!-- GRID 3x3 MENU KEREN -->
+                <div class="quick-grid">
+                    <button class="quick-btn active-menu" onclick="showPage('page-quick')">
+                        <span class="icon">🎚️</span> VOLUME
+                    </button>
+                    <button class="quick-btn" onclick="openSetting(1)">
+                        <span class="icon">🎛️</span> EFFECTS
+                    </button>
+                    <button class="quick-btn" onclick="openInputSetting('L')">
+                        <span class="icon">🔌</span> AUX IN
+                    </button>
+                    <button class="quick-btn" onclick="showQuickNotice('FM RADIO')">
+                        <span class="icon">📻</span> FM RADIO
+                    </button>
+                    <button class="quick-btn" onclick="showQuickNotice('PLAYER')">
+                        <span class="icon">🎵</span> PLAYER
+                    </button>
+                    <button class="quick-btn" onclick="muteAllOutputs()">
+                        <span class="icon">🔇</span> MUTE ALL
+                    </button>
+                    <button class="quick-btn" onclick="showPage('page-guide')">
+                        <span class="icon">⚙️</span> SYSTEM
+                    </button>
+                    <button class="quick-btn" onclick="showQuickNotice('LIGHTS')">
+                        <span class="icon">💡</span> LIGHTS
+                    </button>
+                    <button class="quick-btn" onclick="showQuickNotice('NETWORK')">
+                        <span class="icon">📡</span> NETWORK
+                    </button>
                 </div>
             </div>
 
@@ -532,6 +580,42 @@
                     <div><span style="color: var(--neon-yellow);">■</span> High-Mid (4-8k Hz)</div>
                     <div><span style="color: var(--neon-red);">■</span> Treble (8k-16k Hz)</div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= HALAMAN QUICK ACCESS (PINDAHAN) ================= -->
+<div id="page-quick" class="page">
+    <div class="setting-header">
+        <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
+        <div class="title" style="font-size: 12px;">QUICK CONTROL</div>
+        <div style="width: 80px;"></div>
+    </div>
+
+    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
+        <div class="control-card" style="margin-bottom: 10px;">
+            <div class="card-title" style="margin-bottom: 8px; color: var(--neon-blue);">OUTPUT VOLUMES</div>
+            <div class="out-volumes" style="margin-top: 0; border: none; background: transparent;">
+                <div class="out-vol-row"><span style="color:var(--color-out1); width: 30px;">OUT 1</span><input type="range" id="dash-vol-1" min="-60" max="12" value="0" oninput="syncVolFromDash(1, this.value)"><span id="val-o1" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
+                <div class="out-vol-row"><span style="color:var(--color-out2); width: 30px;">OUT 2</span><input type="range" id="dash-vol-2" min="-60" max="12" value="0" oninput="syncVolFromDash(2, this.value)"><span id="val-o2" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
+                <div class="out-vol-row"><span style="color:var(--color-out3); width: 30px;">OUT 3</span><input type="range" id="dash-vol-3" min="-60" max="12" value="0" oninput="syncVolFromDash(3, this.value)"><span id="val-o3" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
+                <div class="out-vol-row"><span style="color:var(--color-out4); width: 30px;">OUT 4</span><input type="range" id="dash-vol-4" min="-60" max="12" value="0" oninput="syncVolFromDash(4, this.value)"><span id="val-o4" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
+            </div>
+        </div>
+
+        <div class="control-card">
+            <div class="card-title" style="margin-bottom: 8px; color: var(--neon-yellow);">PRESETS & GENERATOR</div>
+            <div class="preset-bar" style="height: auto; flex-wrap: wrap; gap: 5px;">
+                <button class="preset-btn active" id="btn-p1" onclick="handlePresetClick(1)" style="padding: 8px;">P1</button>
+                <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)" style="padding: 8px;">P2</button>
+                <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)" style="padding: 8px;">P3</button>
+                <button class="preset-btn bypass" id="quick-bypass-btn" onclick="toggleBypass(this)" style="padding: 8px;">BYPASS</button>
+            </div>
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,0')" style="padding: 8px; border-color: var(--neon-red); color: var(--neon-red);">OFF</button>
+                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,1')" style="padding: 8px; border-color: var(--neon-yellow); color: var(--neon-yellow);">PINK</button>
+                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,2')" style="padding: 8px; border-color: var(--neon-blue); color: var(--neon-blue);">1kHz</button>
             </div>
         </div>
     </div>
@@ -899,6 +983,8 @@
                 else { routeL.classList.add('active'); routeR.classList.add('active'); }
                 let volSlider = document.getElementById('dash-vol-' + i);
                 if(volSlider) volSlider.value = st.gain;
+                let volLabel = document.getElementById('val-o' + i);
+                if(volLabel) volLabel.innerText = st.gain + ' dB';
             }
             updateDashboardGraph();
         }
@@ -991,7 +1077,9 @@
         }
 
         function syncVolFromDash(outNum, val) {
-            globalState[outNum].gain = val;
+            globalState[outNum].gain = Number(val);
+            const volLabel = document.getElementById('val-o' + outNum);
+            if (volLabel) volLabel.innerText = val + ' dB';
             sendBLEData('OUT' + outNum + '_GAIN,' + val);
             if(currentOut == outNum && document.getElementById('page-setting').classList.contains('active')) {
                 document.getElementById('gain').value = val;
@@ -1166,7 +1254,26 @@
             sendBLEData('ROUTING_OUT' + outNum + '_L,' + (isL ? 1 : 0)); 
             sendBLEData('ROUTING_OUT' + outNum + '_R,' + (isR ? 1 : 0)); 
         }
-        function toggleBypass(btn) { btn.classList.toggle('active'); sendBLEData('ALL_BYPASS,' + (btn.classList.contains('active') ? 1 : 0)); }
+        function toggleBypass(btn) {
+            const isOn = !btn.classList.contains('active');
+            document.querySelectorAll('.preset-btn.bypass').forEach(b => {
+                b.classList.toggle('active', isOn);
+            });
+            sendBLEData('ALL_BYPASS,' + (isOn ? 1 : 0));
+        }
+
+        function muteAllOutputs() {
+            const allMuted = [1, 2, 3, 4].every(i => globalState[i].isMute);
+            for (let i = 1; i <= 4; i++) {
+                globalState[i].isMute = !allMuted;
+                sendBLEData('OUT' + i + '_MUTE,' + (allMuted ? 0 : 1));
+            }
+            syncDashboardUI();
+        }
+
+        function showQuickNotice(feature) {
+            alert(feature + ' belum didukung oleh firmware DLMS Mini saat ini.');
+        }
 
         function toggleSaveMode() { saveMode = !saveMode; let btnSave = document.getElementById('btn-save'); if(saveMode) { btnSave.classList.add('saving'); btnSave.innerText = 'PILIH P1/P2/P3'; } else { btnSave.classList.remove('saving'); btnSave.innerText = 'SAVE'; } }
         function handlePresetClick(presetNum) {
