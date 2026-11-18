@@ -373,6 +373,33 @@
                     <div class="peq-row"><span class="peq-label">3</span><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_freq', -10)">&lt;</button><input class="peq-slider" type="range" id="peq3_freq" min="20" max="20000" value="5000" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_freq', 10)">&gt;</button><div class="peq-text" id="peq3_freqVal" style="color:var(--neon-blue);">5.0k</div></div><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_gain', -1)">&lt;</button><input class="peq-slider" type="range" id="peq3_gain" min="-15" max="15" value="0" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_gain', 1)">&gt;</button><div class="peq-text" id="peq3_gainVal">0</div></div></div>
                 </div>
                 
+                <div class="control-card">
+                    <div class="card-header">
+                        <div class="card-title">COMPRESSOR</div>
+                        <button class="toggle-switch" id="compToggle" onclick="toggleComp(this)">OFF</button>
+                    </div>
+                    <div class="peq-row">
+                        <span class="peq-label">THR</span>
+                        <input type="range" id="compThresh" min="-60" max="0" value="-20" oninput="updateComp('COMP_THRESH', this.value)">
+                        <div class="peq-text" id="compThreshVal">-20</div>
+                    </div>
+                    <div class="peq-row">
+                        <span class="peq-label">RAT</span>
+                        <input type="range" id="compRatio" min="1" max="20" step="0.5" value="4" oninput="updateComp('COMP_RATIO', this.value)">
+                        <div class="peq-text" id="compRatioVal">4.0</div>
+                    </div>
+                    <div class="peq-row">
+                        <span class="peq-label">ATK</span>
+                        <input type="range" id="compAtk" min="1" max="100" value="10" oninput="updateComp('COMP_ATK', this.value)">
+                        <div class="peq-text" id="compAtkVal">10</div>
+                    </div>
+                    <div class="peq-row">
+                        <span class="peq-label">REL</span>
+                        <input type="range" id="compRel" min="50" max="1000" value="200" oninput="updateComp('COMP_REL', this.value)">
+                        <div class="peq-text" id="compRelVal">200</div>
+                    </div>
+                </div>
+                
                 <div class="bottom-row">
                     <div class="half-card"><div class="card-title">OUT VOLUME (GAIN)</div><div class="slider-container"><button class="step-btn" onclick="stepValue('gain', -1)">&lt;</button><input type="range" id="gain" min="-60" max="12" value="0" oninput="updateVal('gain', 'dB')"><button class="step-btn" onclick="stepValue('gain', 1)">&gt;</button><div class="val-display" id="gainVal" style="color:var(--neon-blue);">0</div></div></div>
                     <div class="half-card"><div class="card-title">DELAY</div><div class="slider-container"><button class="step-btn" onclick="stepValue('delay', -0.1)">&lt;</button><input type="range" id="delay" min="0" max="10" step="0.1" value="0" oninput="updateVal('delay', 'ms')"><button class="step-btn" onclick="stepValue('delay', 0.1)">&gt;</button><div class="val-display" id="delayVal">0</div></div></div>
@@ -646,6 +673,21 @@
                     console.error('Gagal kirim:', error); 
                 }
             }, 40);
+        }
+
+        function toggleComp(btn) {
+            btn.classList.toggle('on');
+            let isOn = btn.classList.contains('on');
+            btn.innerText = isOn ? 'ON' : 'OFF';
+            sendBLEData('OUT' + currentOut + '_COMP_ON,' + (isOn ? 1 : 0));
+        }
+
+        function updateComp(param, val) {
+            sendBLEData('OUT' + currentOut + '_' + param + ',' + val);
+            if(param === 'COMP_THRESH') document.getElementById('compThreshVal').innerText = val;
+            if(param === 'COMP_RATIO') document.getElementById('compRatioVal').innerText = parseFloat(val).toFixed(1);
+            if(param === 'COMP_ATK') document.getElementById('compAtkVal').innerText = val;
+            if(param === 'COMP_REL') document.getElementById('compRelVal').innerText = val;
         }
 
         function handleBLEMessage(event) {
