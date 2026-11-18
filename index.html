@@ -1077,96 +1077,153 @@
     </script>
 
     <script>
-        let audioContext, analyser, microphone, dataArray;
-        let rtaActive = false;
+    // === RTA PAGE VARIABLES ===
+    let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaDataArray;
+    let rtaActive = false;
+    let rtaSmoothing = 0.8;
+    let rtaPeakHold = new Array(16).fill(0);
+    let rtaPageActive = false;
 
-        async function toggleRTA() {
-            const btn = document.getElementById('btn-rta');
-            const status = document.getElementById('rta-status');
+    // Mapping 16 band frekuensi (standar ISO)
+    const rtaBands = [
+        [0, 1],    // 31 Hz
+        [1, 2],    // 63 Hz
+        [2, 4],    // 125 Hz
+        [4, 7],    // 250 Hz
+        [7, 11],   // 500 Hz
+        [11, 16],  // 1k Hz
+        [16, 23],  // 2k Hz
+        [23, 32],  // 4k Hz
+        [32, 45],  // 8k Hz
+        [45, 63],  // 16k Hz (approx)
+        [63, 89],  // extended
+        [89, 120],
+        [120, 160],
+        [160, 200],
+        [200, 230],
+        [230, 255]
+    ];
+
+    function openRTAPage() {
+        rtaPageActive = true;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-rta').classList.add('active');
+    }
+
+    function closeRTAPage() {
+        rtaPageActive = false;
+        // Auto-stop RTA saat keluar halaman
+        if (rtaActive) toggleRTA();
+        showPage('page-front');
+    }
+
+    function updateRTASmoothing(val) {
+        rtaSmoothing = val / 100;
+        document.getElementById('rta-smooth-val').innerText = val + '%';
+        if (rtaAnalyser) rtaAnalyser.smoothingTimeConstant = rtaSmoothing;
+    }
+
+    async function toggleRTA() {
+        const btn = document.getElementById('rta-toggle-btn');
+        const status = document.getElementById('rta-status');
+        
+        if (!rtaActive) {
+            try {
+                status.innerText = "⏳ Meminta izin mikrofon...";
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false 
+                    } 
+                });
+                
+                rtaAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                rtaAnalyser = rtaAudioContext.createAnalyser();
+                rtaAnalyser.fftSize = 512;
+                rtaAnalyser.smoothingTimeConstant = rtaSmoothing;
+                
+                rtaMicrophone = rtaAudioContext.createMediaStreamSource(stream);
+                rtaMicrophone.connect(rtaAnalyser);
+                
+                rtaDataArray = new Uint8Array(rtaAnalyser.frequencyBinCount);
+                rtaPeakHold = new Array(16).fill(0);
+                
+                rtaActive = true;
+                btn.innerText = "🛑 STOP";
+                btn.classList.add('active');
+                status.innerText = "🎤 RTA Aktif - Arahkan mic ke speaker";
+                
+                updateRTA16Band();
+            } catch (err) {
+                status.innerText = "❌ Gagal: " + err.message;
+                alert("⚠️ Izin mic ditolak!\nPastikan pakai Chrome Android dan izinkan akses mikrofon.");
+            }
+        } else {
+            rtaActive = false;
+            if (rtaAudioContext) rtaAudioContext.close();
+            btn.innerText = "🎤 MULAI";
+            btn.classList.remove('active');
+            status.innerText = "Tekan MULAI untuk aktifkan mikrofon HP";
             
-            if (!rtaActive) {
-                try {
-                    status.innerText = "⏳ Meminta izin mic...";
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        audio: { 
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false 
-                        } 
-                    });
-                    
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 512;
-                    analyser.smoothingTimeConstant = 0.8;
-                    
-                    microphone = audioContext.createMediaStreamSource(stream);
-                    microphone.connect(analyser);
-                    
-                    dataArray = new Uint8Array(analyser.frequencyBinCount);
-                    
-                    rtaActive = true;
-                    btn.innerText = "🛑 STOP RTA";
-                    btn.style.color = "var(--neon-red)";
-                    btn.style.borderColor = "var(--neon-red)";
-                    btn.style.boxShadow = "0 0 10px rgba(255, 0, 51, 0.5)";
-                    status.innerText = "🎤 Mic aktif! Bersiul/putar musik";
-                    
-                    updateRTA();
-                } catch (err) {
-                    status.innerText = "❌ Gagal: " + err.message;
-                    alert("⚠️ Izin mic ditolak atau error:\n" + err.message + "\n\nPastikan:\n1. Chrome Android\n2. Website HTTPS\n3. Izin mic di-ALLOW");
-                }
+            // Reset semua bar
+            for(let i=0; i<16; i++) {
+                let bar = document.getElementById('rta-bar-'+i);
+                if(bar) bar.style.height = '0%';
+            }
+            document.getElementById('rta-peak-db').innerText = '-∞ dB';
+            document.getElementById('rta-rms-db').innerText = '-∞ dB';
+        }
+    }
+
+    function updateRTA16Band() {
+        if (!rtaActive || !rtaPageActive) return;
+        requestAnimationFrame(updateRTA16Band);
+        
+        rtaAnalyser.getByteFrequencyData(rtaDataArray);
+        
+        let totalSum = 0;
+        let maxVal = 0;
+        
+        for (let i = 0; i < 16; i++) {
+            let sum = 0, count = 0;
+            for (let j = rtaBands[i][0]; j < rtaBands[i][1] && j < rtaDataArray.length; j++) {
+                sum += rtaDataArray[j];
+                count++;
+            }
+            let avg = count > 0 ? sum / count : 0;
+            let percent = (avg / 255) * 100;
+            
+            // Peak hold (turun perlahan)
+            if (percent > rtaPeakHold[i]) {
+                rtaPeakHold[i] = percent;
             } else {
-                rtaActive = false;
-                if (audioContext) audioContext.close();
-                btn.innerText = "🎤 MULAI RTA MIC";
-                btn.style.color = "var(--neon-green)";
-                btn.style.borderColor = "var(--neon-green)";
-                btn.style.boxShadow = "0 0 10px rgba(0, 255, 136, 0.3)";
-                status.innerText = "Klik untuk aktifkan mic HP";
-                
-                for(let i=0; i<7; i++) {
-                    let bar = document.getElementById('spec-bar-'+i);
-                    if(bar) bar.style.height = '0%';
-                }
+                rtaPeakHold[i] = Math.max(0, rtaPeakHold[i] - 0.5);
             }
-        }
-
-        function updateRTA() {
-            if (!rtaActive) return;
-            requestAnimationFrame(updateRTA);
             
-            analyser.getByteFrequencyData(dataArray);
-            
-            const bands = [
-                [1, 5],
-                [5, 12],
-                [12, 25],
-                [25, 50],
-                [50, 80],
-                [80, 120],
-                [120, 180]
-            ];
-
-            for (let i = 0; i < 7; i++) {
-                let sum = 0, count = 0;
-                for (let j = bands[i][0]; j < bands[i][1] && j < dataArray.length; j++) {
-                    sum += dataArray[j];
-                    count++;
-                }
-                let avg = count > 0 ? sum / count : 0;
-                let percent = (avg / 255) * 100;
+            let bar = document.getElementById('rta-bar-'+i);
+            if (bar) {
+                bar.style.height = Math.max(1, percent) + '%';
                 
-                let bar = document.getElementById('spec-bar-'+i);
-                if (bar) {
-                    bar.style.height = Math.max(2, percent) + '%';
-                    if (percent > 85) bar.style.background = 'var(--neon-red)';
-                    else if (percent > 65) bar.style.background = 'var(--neon-yellow)';
-                    else bar.style.background = 'var(--neon-blue)';
-                }
+                // Warna dinamis
+                if (percent > 85) bar.style.background = 'var(--neon-red)';
+                else if (percent > 65) bar.style.background = 'var(--neon-yellow)';
+                else if (percent > 40) bar.style.background = 'var(--neon-green)';
+                else bar.style.background = 'var(--neon-blue)';
             }
+            
+            totalSum += avg;
+            if (avg > maxVal) maxVal = avg;
         }
+        
+        // Update dB display
+        let avgLevel = totalSum / 16;
+        let dbLevel = avgLevel > 0 ? (20 * Math.log10(avgLevel / 255)).toFixed(1) : '-∞';
+        let peakDb = maxVal > 0 ? (20 * Math.log10(maxVal / 255)).toFixed(1) : '-∞';
+        
+        document.getElementById('rta-rms-db').innerText = dbLevel + ' dB';
+        document.getElementById('rta-peak-db').innerText = peakDb + ' dB';
+    }
     </script>
 </body>
 </html>
