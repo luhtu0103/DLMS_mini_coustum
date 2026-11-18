@@ -635,6 +635,9 @@
         function handleBLEMessage(event) {
             const text = new TextDecoder().decode(event.target.value).trim();
             if (text.startsWith('SPECTRUM:')) {
+                // SKIP update spectrum bar jika sedang di halaman RTA
+                if (rtaPageActive && rtaActive) return;
+
                 const parts = text.split(':')[1].split(',');
                 if (parts.length === 7) {
                     for (let i = 0; i < 7; i++) {
