@@ -148,6 +148,10 @@
         .peq-label { font-size: 8px; font-weight: bold; color: var(--text-dim); width: 10px;}
         .peq-slider { width: 35%; }
         .peq-text { font-size: 8px; font-weight: bold; min-width: 32px; text-align: right; color: #fff; }
+        /* Compressor rows need room for their full labels and must not let sliders cover them. */
+        .compressor-row .peq-label { width: 30px; min-width: 30px; flex-shrink: 0; }
+        .compressor-row > input[type=range] { flex: 1; width: auto; min-width: 0; }
+        .compressor-row .peq-text { min-width: 34px; flex-shrink: 0; }
         
         .bottom-row { display: flex; gap: 4px; flex-shrink: 0; margin-top: 4px;}
         .half-card { flex: 1; background: var(--panel-bg); border: 1px solid #1a2a40; border-radius: 4px; padding: 6px 6px; display: flex; flex-direction: column; justify-content: center;}
@@ -378,22 +382,22 @@
                         <div class="card-title">COMPRESSOR</div>
                         <button class="toggle-switch" id="compToggle" onclick="toggleComp(this)">OFF</button>
                     </div>
-                    <div class="peq-row">
+                    <div class="peq-row compressor-row">
                         <span class="peq-label">THR</span>
                         <input type="range" id="compThresh" min="-60" max="0" value="-20" oninput="updateComp('COMP_THRESH', this.value)">
                         <div class="peq-text" id="compThreshVal">-20</div>
                     </div>
-                    <div class="peq-row">
+                    <div class="peq-row compressor-row">
                         <span class="peq-label">RAT</span>
                         <input type="range" id="compRatio" min="1" max="20" step="0.5" value="4" oninput="updateComp('COMP_RATIO', this.value)">
                         <div class="peq-text" id="compRatioVal">4.0</div>
                     </div>
-                    <div class="peq-row">
+                    <div class="peq-row compressor-row">
                         <span class="peq-label">ATK</span>
                         <input type="range" id="compAtk" min="1" max="100" value="10" oninput="updateComp('COMP_ATK', this.value)">
                         <div class="peq-text" id="compAtkVal">10</div>
                     </div>
-                    <div class="peq-row">
+                    <div class="peq-row compressor-row">
                         <span class="peq-label">REL</span>
                         <input type="range" id="compRel" min="50" max="1000" value="200" oninput="updateComp('COMP_REL', this.value)">
                         <div class="peq-text" id="compRelVal">200</div>
