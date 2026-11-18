@@ -240,6 +240,34 @@
             border-color: var(--neon-green);
             box-shadow: 0 0 7px rgba(0,255,136,0.25), inset 0 0 4px rgba(0,0,0,0.5);
         }
+        /* Modern output-volume equaliser controls */
+        .volume-eq-card { width: 100%; max-width: 680px; margin: 0 auto; }
+        .volume-eq-list { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+        .volume-eq-row { display: grid; grid-template-columns: 66px minmax(0,1fr) 48px; align-items: center; gap: 10px; padding: 10px; background: #03060a; border: 1px solid #1a2a40; border-radius: 8px; }
+        .eq-channel { display: flex; align-items: center; gap: 6px; color: var(--text-dim); font-size: 10px; font-weight: bold; }
+        .eq-dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; }
+        .volume-eq-row.out1 { color: var(--color-out1); }
+        .volume-eq-row.out2 { color: var(--color-out2); }
+        .volume-eq-row.out3 { color: var(--color-out3); }
+        .volume-eq-row.out4 { color: var(--color-out4); }
+        .volume-eq-row input[type=range] { width: 100%; accent-color: currentColor; cursor: pointer; }
+        .eq-value { color: currentColor; text-align: right; font-size: 10px; font-weight: bold; white-space: nowrap; }
+        .preset-grid-four, .generator-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-top: 14px; }
+        .preset-grid-four .preset-btn { min-height: 46px; font-size: 14px; border-radius: 7px; }
+        .preset-help { color: var(--text-dim); font-size: 10px; line-height: 1.5; margin: 12px 0; }
+        .preset-wide { width: 100%; min-height: 42px; font-size: 11px; border-radius: 7px; }
+        .generator-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+        .generator-btn { min-height: 54px; background: #03060a; border: 1px solid #1a2a40; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all .2s ease; }
+        .generator-btn:hover, .generator-btn:active { transform: translateY(-1px); box-shadow: 0 0 10px currentColor; }
+        .gen-off { color: var(--neon-red); border-color: var(--neon-red); }
+        .gen-pink { color: var(--neon-yellow); border-color: var(--neon-yellow); }
+        .gen-tone { color: var(--neon-blue); border-color: var(--neon-blue); }
+        @media (max-width: 420px) {
+            .volume-eq-row { grid-template-columns: 56px minmax(0,1fr) 42px; gap: 6px; padding: 8px; }
+            .volume-eq-list { gap: 9px; }
+            .preset-grid-four { gap: 5px; }
+            .preset-grid-four .preset-btn { min-height: 42px; }
+        }
     </style>
 </head>
 <body>
@@ -283,11 +311,11 @@
                     </div>
                 </div>
 
-                <!-- GRID 3x3 MENU (Tanpa Emoji) -->
+                <!-- GRID 3x3 MENU -->
                 <div class="quick-grid">
                     <button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button>
-                    <button class="quick-btn">EFFECTS</button>
-                    <button class="quick-btn">AUX IN</button>
+                    <button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
+                    <button class="quick-btn" onclick="showPage('page-generator')">AUX IN</button>
                     
                     <button class="quick-btn">FM RADIO</button>
                     <button class="quick-btn">PLAYER</button>
@@ -588,33 +616,56 @@
 <div id="page-quick" class="page">
     <div class="setting-header">
         <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
-        <div class="title" style="font-size: 12px;">QUICK CONTROL</div>
+        <div class="title" style="font-size: 12px;">OUTPUT VOLUME</div>
         <div style="width: 80px;"></div>
     </div>
-
     <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
-        <div class="control-card" style="margin-bottom: 10px;">
-            <div class="card-title" style="margin-bottom: 8px; color: var(--neon-blue);">OUTPUT VOLUMES</div>
-            <div class="out-volumes" style="margin-top: 0; border: none; background: transparent;">
-                <div class="out-vol-row"><span style="color:var(--color-out1); width: 30px;">OUT 1</span><input type="range" id="dash-vol-1" min="-60" max="12" value="0" oninput="syncVolFromDash(1, this.value)"><span id="val-o1" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
-                <div class="out-vol-row"><span style="color:var(--color-out2); width: 30px;">OUT 2</span><input type="range" id="dash-vol-2" min="-60" max="12" value="0" oninput="syncVolFromDash(2, this.value)"><span id="val-o2" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
-                <div class="out-vol-row"><span style="color:var(--color-out3); width: 30px;">OUT 3</span><input type="range" id="dash-vol-3" min="-60" max="12" value="0" oninput="syncVolFromDash(3, this.value)"><span id="val-o3" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
-                <div class="out-vol-row"><span style="color:var(--color-out4); width: 30px;">OUT 4</span><input type="range" id="dash-vol-4" min="-60" max="12" value="0" oninput="syncVolFromDash(4, this.value)"><span id="val-o4" style="width: 40px; text-align: right; font-size: 10px;">0 dB</span></div>
+        <div class="control-card volume-eq-card">
+            <div class="card-title" style="color: var(--neon-blue);">4-CHANNEL EQUALISER CONTROL</div>
+            <div class="volume-eq-list">
+                <div class="volume-eq-row out1"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 1</span></div><input type="range" id="dash-vol-1" min="-60" max="12" value="0" oninput="syncVolFromDash(1, this.value)"><span id="val-o1" class="eq-value">0 dB</span></div>
+                <div class="volume-eq-row out2"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 2</span></div><input type="range" id="dash-vol-2" min="-60" max="12" value="0" oninput="syncVolFromDash(2, this.value)"><span id="val-o2" class="eq-value">0 dB</span></div>
+                <div class="volume-eq-row out3"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 3</span></div><input type="range" id="dash-vol-3" min="-60" max="12" value="0" oninput="syncVolFromDash(3, this.value)"><span id="val-o3" class="eq-value">0 dB</span></div>
+                <div class="volume-eq-row out4"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 4</span></div><input type="range" id="dash-vol-4" min="-60" max="12" value="0" oninput="syncVolFromDash(4, this.value)"><span id="val-o4" class="eq-value">0 dB</span></div>
             </div>
         </div>
+    </div>
+</div>
 
+<div id="page-presets" class="page">
+    <div class="setting-header">
+        <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
+        <div class="title" style="font-size: 12px;">EFFECT PRESETS</div>
+        <div style="width: 80px;"></div>
+    </div>
+    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
         <div class="control-card">
-            <div class="card-title" style="margin-bottom: 8px; color: var(--neon-yellow);">PRESETS & GENERATOR</div>
-            <div class="preset-bar" style="height: auto; flex-wrap: wrap; gap: 5px;">
-                <button class="preset-btn active" id="btn-p1" onclick="handlePresetClick(1)" style="padding: 8px;">P1</button>
-                <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)" style="padding: 8px;">P2</button>
-                <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)" style="padding: 8px;">P3</button>
-                <button class="preset-btn bypass" id="quick-bypass-btn" onclick="toggleBypass(this)" style="padding: 8px;">BYPASS</button>
+            <div class="card-title" style="color: var(--neon-yellow);">SOUND PRESETS</div>
+            <div class="preset-grid-four">
+                <button class="preset-btn active" id="btn-p1" onclick="handlePresetClick(1)">P1</button>
+                <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)">P2</button>
+                <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)">P3</button>
+                <button class="preset-btn" id="btn-p4" onclick="handlePresetClick(4)">P4</button>
             </div>
-            <div style="display: flex; gap: 5px; margin-top: 10px;">
-                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,0')" style="padding: 8px; border-color: var(--neon-red); color: var(--neon-red);">OFF</button>
-                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,1')" style="padding: 8px; border-color: var(--neon-yellow); color: var(--neon-yellow);">PINK</button>
-                <button class="preset-btn" onclick="sendBLEData('SIG_GEN,2')" style="padding: 8px; border-color: var(--neon-blue); color: var(--neon-blue);">1kHz</button>
+            <div class="preset-help">Pilih P1–P4 untuk memuat preset. Gunakan tombol SAVE di halaman pengaturan untuk menyimpan preset.</div>
+            <button class="preset-btn bypass preset-wide" id="quick-bypass-btn" onclick="toggleBypass(this)">BYPASS ALL EFFECTS</button>
+        </div>
+    </div>
+</div>
+
+<div id="page-generator" class="page">
+    <div class="setting-header">
+        <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
+        <div class="title" style="font-size: 12px;">SIGNAL GENERATOR</div>
+        <div style="width: 80px;"></div>
+    </div>
+    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
+        <div class="control-card">
+            <div class="card-title" style="color: var(--neon-blue);">TEST SIGNAL</div>
+            <div class="generator-grid">
+                <button class="generator-btn gen-off" onclick="sendBLEData('SIG_GEN,0')">OFF</button>
+                <button class="generator-btn gen-pink" onclick="sendBLEData('SIG_GEN,1')">PINK</button>
+                <button class="generator-btn gen-tone" onclick="sendBLEData('SIG_GEN,2')">1 kHz</button>
             </div>
         </div>
     </div>
@@ -1313,7 +1364,7 @@
                 alert('❌ Preset tidak valid: ' + error.message);
             }
         }
-        function updatePresetButtons(activeNum) { for(let i=1; i<=3; i++) { let btn = document.getElementById('btn-p' + i); if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } }
+        function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { let btn = document.getElementById('btn-p' + i); if(btn) { if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } } }
         
         function showPage(pageId) { 
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
