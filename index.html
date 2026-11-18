@@ -944,6 +944,8 @@
             tgt.gain = src.gain;
             tgt.delay = src.delay;
             tgt.limitOn = src.limitOn; tgt.limit = src.limit;
+            tgt.compOn = src.compOn; tgt.compThresh = src.compThresh; tgt.compRatio = src.compRatio;
+            tgt.compAtk = src.compAtk; tgt.compRel = src.compRel;
             sendBLEData('OUT' + targetOut + '_HPF_ON,' + (tgt.hpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_HPFFREQ,' + tgt.hpfFreq);
             sendBLEData('OUT' + targetOut + '_LPF_ON,' + (tgt.lpfOn ? 1 : 0));
@@ -958,6 +960,11 @@
             sendBLEData('OUT' + targetOut + '_DELAY,' + tgt.delay);
             sendBLEData('OUT' + targetOut + '_LIMIT_ON,' + (tgt.limitOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_LIMIT,' + tgt.limit);
+            sendBLEData('OUT' + targetOut + '_COMP_ON,' + (tgt.compOn ? 1 : 0));
+            sendBLEData('OUT' + targetOut + '_COMP_THRESH,' + tgt.compThresh);
+            sendBLEData('OUT' + targetOut + '_COMP_RATIO,' + tgt.compRatio);
+            sendBLEData('OUT' + targetOut + '_COMP_ATK,' + tgt.compAtk);
+            sendBLEData('OUT' + targetOut + '_COMP_REL,' + tgt.compRel);
             document.getElementById('dash-vol-' + targetOut).value = tgt.gain;
             updateDashboardGraph();
             if (currentOut === targetOut && document.getElementById('page-setting').classList.contains('active')) {
