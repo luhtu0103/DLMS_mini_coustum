@@ -592,14 +592,14 @@
         let isLinked = false; 
         let oscData = new Array(50).fill(50); 
 
-        let bleSendTimeout = null;
-        let lastBleCommand = '';
+        const bleCommandQueue = [];
+        let bleQueueBusy = false;
 
         let globalState = {
-            1: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false },
-            2: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false },
-            3: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 100, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false },
-            4: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 85, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false }
+            1: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            2: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            3: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 100, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            4: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 85, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 }
         };
 
         let inputState = {
@@ -665,33 +665,45 @@
         }
         
         async function sendBLEData(text) {
-            if (!bleCharacteristic) return;
-            lastBleCommand = text;
-            if (bleSendTimeout) clearTimeout(bleSendTimeout);
-            bleSendTimeout = setTimeout(async () => {
-                try { 
-                    const encoder = new TextEncoder(); 
-                    const data = encoder.encode(lastBleCommand + '\n'); 
-                    await bleCharacteristic.writeValue(data); 
-                } catch (error) { 
-                    console.error('Gagal kirim:', error); 
+            if (!bleCharacteristic || !bleDevice?.gatt?.connected) return;
+            bleCommandQueue.push(String(text));
+            if (bleQueueBusy) return;
+            bleQueueBusy = true;
+            try {
+                while (bleCommandQueue.length && bleCharacteristic && bleDevice?.gatt?.connected) {
+                    const command = bleCommandQueue.shift();
+                    await bleCharacteristic.writeValue(new TextEncoder().encode(command + '\n'));
+                    await new Promise(resolve => setTimeout(resolve, 12));
                 }
-            }, 40);
+            } catch (error) {
+                console.error('Gagal kirim BLE:', error);
+                bleCommandQueue.length = 0;
+            } finally {
+                bleQueueBusy = false;
+            }
         }
 
         function toggleComp(btn) {
             btn.classList.toggle('on');
-            let isOn = btn.classList.contains('on');
+            const isOn = btn.classList.contains('on');
             btn.innerText = isOn ? 'ON' : 'OFF';
+            globalState[currentOut].compOn = isOn;
             sendBLEData('OUT' + currentOut + '_COMP_ON,' + (isOn ? 1 : 0));
+            applyGlobalLink(currentOut);
         }
 
         function updateComp(param, val) {
+            const st = globalState[currentOut];
+            if (param === 'COMP_THRESH') st.compThresh = Number(val);
+            if (param === 'COMP_RATIO') st.compRatio = Number(val);
+            if (param === 'COMP_ATK') st.compAtk = Number(val);
+            if (param === 'COMP_REL') st.compRel = Number(val);
             sendBLEData('OUT' + currentOut + '_' + param + ',' + val);
             if(param === 'COMP_THRESH') document.getElementById('compThreshVal').innerText = val;
-            if(param === 'COMP_RATIO') document.getElementById('compRatioVal').innerText = parseFloat(val).toFixed(1);
+            if(param === 'COMP_RATIO') document.getElementById('compRatioVal').innerText = Number(val).toFixed(1);
             if(param === 'COMP_ATK') document.getElementById('compAtkVal').innerText = val;
             if(param === 'COMP_REL') document.getElementById('compRelVal').innerText = val;
+            applyGlobalLink(currentOut);
         }
 
         function handleBLEMessage(event) {
@@ -998,7 +1010,12 @@
             st.p2f = document.getElementById('peq2_freq').value; st.p2g = document.getElementById('peq2_gain').value; 
             st.p3f = document.getElementById('peq3_freq').value; st.p3g = document.getElementById('peq3_gain').value; 
             st.gain = document.getElementById('gain').value; st.delay = document.getElementById('delay').value; 
-            st.limitOn = document.getElementById('limToggle').classList.contains('on'); st.limit = document.getElementById('limit').value; 
+            st.limitOn = document.getElementById('limToggle').classList.contains('on'); st.limit = Number(document.getElementById('limit').value);
+            st.compOn = document.getElementById('compToggle').classList.contains('on');
+            st.compThresh = Number(document.getElementById('compThresh').value);
+            st.compRatio = Number(document.getElementById('compRatio').value);
+            st.compAtk = Number(document.getElementById('compAtk').value);
+            st.compRel = Number(document.getElementById('compRel').value);
         }
 
         function loadStateToUI(outNum) { 
@@ -1009,7 +1026,12 @@
             document.getElementById('peq2_freq').value = st.p2f; document.getElementById('peq2_gain').value = st.p2g; 
             document.getElementById('peq3_freq').value = st.p3f; document.getElementById('peq3_gain').value = st.p3g; 
             document.getElementById('gain').value = st.gain; document.getElementById('delay').value = st.delay; 
-            document.getElementById('limit').value = st.limit; document.getElementById('limToggle').className = st.limitOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('limToggle').innerText = st.limitOn ? 'ON' : 'OFF'; 
+            document.getElementById('limit').value = st.limit; document.getElementById('limToggle').className = st.limitOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('limToggle').innerText = st.limitOn ? 'ON' : 'OFF';
+            document.getElementById('compToggle').className = st.compOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('compToggle').innerText = st.compOn ? 'ON' : 'OFF';
+            document.getElementById('compThresh').value = st.compThresh; document.getElementById('compThreshVal').innerText = st.compThresh;
+            document.getElementById('compRatio').value = st.compRatio; document.getElementById('compRatioVal').innerText = Number(st.compRatio).toFixed(1);
+            document.getElementById('compAtk').value = st.compAtk; document.getElementById('compAtkVal').innerText = st.compAtk;
+            document.getElementById('compRel').value = st.compRel; document.getElementById('compRelVal').innerText = st.compRel;
             document.getElementById('gainVal').innerText = st.gain + ' dB'; document.getElementById('delayVal').innerText = st.delay + ' ms'; document.getElementById('limitVal').innerText = st.limit + ' dB'; 
             let phaseUtilBtn = document.querySelector('.graph-utils .util-btn.phase');
             if(phaseUtilBtn) { if(st.phase180) { phaseUtilBtn.classList.add('active'); phaseUtilBtn.innerText = '180°'; } else { phaseUtilBtn.classList.remove('active'); phaseUtilBtn.innerText = '0°'; } }
@@ -1018,7 +1040,48 @@
             updateGraph(); 
         }
 
-        function resetToDefault() { if(confirm("Reset Out " + currentOut + " ke Flat?")) { globalState[currentOut] = { hpfOn: false, hpfFreq: 20, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: false, limit: 0, routing: 2, isMute: false, phase180: false }; loadStateToUI(currentOut); sendBLEData('RESET,' + currentOut); syncDashboardUI(); applyGlobalLink(currentOut); } }
+        function sendOutputStateToDevice(outNum, st) {
+            const prefix = 'OUT' + outNum + '_';
+            const commands = [
+                ['HPF_ON', st.hpfOn ? 1 : 0], ['HPFFREQ', st.hpfFreq],
+                ['LPF_ON', st.lpfOn ? 1 : 0], ['LPFFREQ', st.lpfFreq],
+                ['PEQ1FREQ', st.p1f], ['PEQ1GAIN', st.p1g],
+                ['PEQ2FREQ', st.p2f], ['PEQ2GAIN', st.p2g],
+                ['PEQ3FREQ', st.p3f], ['PEQ3GAIN', st.p3g],
+                ['GAIN', st.gain], ['DELAY', st.delay],
+                ['LIMIT_ON', st.limitOn ? 1 : 0], ['LIMIT', st.limit],
+                ['COMP_ON', st.compOn ? 1 : 0], ['COMP_THRESH', st.compThresh],
+                ['COMP_RATIO', st.compRatio], ['COMP_ATK', st.compAtk], ['COMP_REL', st.compRel],
+                ['MUTE', st.isMute ? 1 : 0], ['PHASE', st.phase180 ? 1 : 0],
+                ['ROUTING_OUT' + outNum + '_L', st.routing === 0 ? 1 : 0],
+                ['ROUTING_OUT' + outNum + '_R', st.routing === 1 ? 1 : 0]
+            ];
+            commands.forEach(([param, value]) => {
+                if (param.startsWith('ROUTING_OUT')) sendBLEData(param + ',' + value);
+                else sendBLEData(prefix + param + ',' + value);
+            });
+        }
+
+        function sendInputStateToDevice(input, st) {
+            sendBLEData('IN_' + input + '_GAIN,' + st.gain);
+            sendBLEData('IN_' + input + '_PEQFREQ,' + st.peqFreq);
+            sendBLEData('IN_' + input + '_PEQGAIN,' + st.peqGain);
+        }
+
+        function resetToDefault() {
+            if (!confirm('Reset Out ' + currentOut + ' ke Flat?')) return;
+            globalState[currentOut] = {
+                hpfOn: false, hpfFreq: 20, lpfOn: false, lpfFreq: 20000,
+                p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0,
+                gain: 0, delay: 0, limitOn: false, limit: 0, routing: 2,
+                isMute: false, phase180: false, compOn: false,
+                compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200
+            };
+            loadStateToUI(currentOut);
+            sendOutputStateToDevice(currentOut, globalState[currentOut]);
+            syncDashboardUI();
+            applyGlobalLink(currentOut);
+        }
 
         function openInputSetting(ch) { currentInput = ch; document.querySelectorAll('#page-input-setting .out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-in-' + ch).classList.add('active'); loadInputUI(ch); showPage('page-input-setting'); }
         function switchInputTab(ch) { saveInputUI(); currentInput = ch; document.querySelectorAll('#page-input-setting .out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-in-' + ch).classList.add('active'); loadInputUI(ch); }
@@ -1100,24 +1163,43 @@
         function toggleBypass(btn) { btn.classList.toggle('active'); sendBLEData('ALL_BYPASS,' + (btn.classList.contains('active') ? 1 : 0)); }
 
         function toggleSaveMode() { saveMode = !saveMode; let btnSave = document.getElementById('btn-save'); if(saveMode) { btnSave.classList.add('saving'); btnSave.innerText = 'PILIH P1/P2/P3'; } else { btnSave.classList.remove('saving'); btnSave.innerText = 'SAVE'; } }
-        function handlePresetClick(presetNum) { 
-            if(document.getElementById('page-setting').classList.contains('active')) { saveCurrentUI(); } 
-            if(document.getElementById('page-input-setting').classList.contains('active')) { saveInputUI(); } 
-            if (saveMode) { 
-                let dataToSave = { outs: globalState, ins: inputState }; 
-                localStorage.setItem('DLMS_PRESET_' + presetNum, JSON.stringify(dataToSave)); 
-                alert('✅ Settingan disimpan ke P' + presetNum); toggleSaveMode(); updatePresetButtons(presetNum); 
-            } else { 
-                let savedData = localStorage.getItem('DLMS_PRESET_' + presetNum); 
-                if (savedData) { 
-                    let parsed = JSON.parse(savedData); 
-                    globalState = parsed.outs; 
-                    inputState = parsed.ins; 
-                    loadStateToUI(currentOut); 
-                    sendBLEData('LOAD_PRESET,' + presetNum); alert('🔄 Settingan P' + presetNum + ' dimuat!'); updatePresetButtons(presetNum); 
-                    syncDashboardUI(); 
-                } else { alert('⚠️ Belum ada data di P' + presetNum); } 
-            } 
+        function handlePresetClick(presetNum) {
+            if (document.getElementById('page-setting').classList.contains('active')) saveCurrentUI();
+            if (document.getElementById('page-input-setting').classList.contains('active')) saveInputUI();
+            if (saveMode) {
+                localStorage.setItem('DLMS_PRESET_' + presetNum, JSON.stringify({ outs: globalState, ins: inputState }));
+                alert('✅ Settingan disimpan ke P' + presetNum);
+                toggleSaveMode();
+                updatePresetButtons(presetNum);
+                return;
+            }
+            const savedData = localStorage.getItem('DLMS_PRESET_' + presetNum);
+            if (!savedData) { alert('⚠️ Belum ada data di P' + presetNum); return; }
+            try {
+                const parsed = JSON.parse(savedData);
+                if (!parsed.outs || !parsed.ins) throw new Error('Format preset tidak valid');
+                for (let i = 1; i <= 4; i++) {
+                    const st = parsed.outs[i];
+                    if (!st) throw new Error('Data OUT ' + i + ' tidak lengkap');
+                    if (st.compOn === undefined) st.compOn = false;
+                    if (st.compThresh === undefined) st.compThresh = -20;
+                    if (st.compRatio === undefined) st.compRatio = 4;
+                    if (st.compAtk === undefined) st.compAtk = 10;
+                    if (st.compRel === undefined) st.compRel = 200;
+                }
+                globalState = parsed.outs;
+                inputState = parsed.ins;
+                loadStateToUI(currentOut);
+                for (let i = 1; i <= 4; i++) sendOutputStateToDevice(i, globalState[i]);
+                sendInputStateToDevice('L', inputState.L);
+                sendInputStateToDevice('R', inputState.R);
+                syncDashboardUI();
+                updatePresetButtons(presetNum);
+                alert('🔄 Settingan P' + presetNum + ' dimuat ke aplikasi dan perangkat!');
+            } catch (error) {
+                console.error('Gagal memuat preset:', error);
+                alert('❌ Preset tidak valid: ' + error.message);
+            }
         }
         function updatePresetButtons(activeNum) { for(let i=1; i<=3; i++) { let btn = document.getElementById('btn-p' + i); if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } }
         
