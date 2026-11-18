@@ -190,41 +190,45 @@
         .highlight { color: var(--neon-green); font-weight: bold; }
 
         
-        /* === GRID 3x3 MENU === */
-        .quick-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 6px;
-            margin-top: 10px;
+        /* === GRID 3x3 MENU (Tanpa Emoji) === */
+        .quick-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 6px; 
+            margin-top: 10px; 
             height: auto;
-            flex-shrink: 0;
         }
-        .quick-btn {
-            min-width: 0;
-            background: var(--panel-bg);
-            color: var(--text-dim);
-            border: 1px solid #1a2a40;
-            border-radius: 6px;
-            padding: 10px 2px;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .quick-btn { 
+            background: var(--panel-bg); 
+            color: var(--text-dim); 
+            border: 1px solid #1a2a40; 
+            border-radius: 6px; 
+            padding: 14px 0; 
+            font-size: 11px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
             justify-content: center;
-            gap: 4px;
-            transition: 0.2s;
+            transition: all 0.2s ease;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
-        .quick-btn:active { transform: scale(0.95); }
-        .quick-btn.active-menu {
-            color: var(--neon-green);
-            border-color: var(--neon-green);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        .quick-btn:hover { 
+            background: #1a2a40; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
-        .quick-btn .icon { font-size: 16px; line-height: 1; }
-        .quick-btn:focus-visible { outline: 1px solid var(--neon-blue); outline-offset: 1px; }
+        .quick-btn:active { 
+            transform: scale(0.95) translateY(0);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .quick-btn.active-menu { 
+            color: var(--neon-green); 
+            border-color: var(--neon-green); 
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3), inset 0 0 5px rgba(0,0,0,0.5); 
+        }
     </style>
 </head>
 <body>
@@ -268,35 +272,19 @@
                     </div>
                 </div>
 
-                <!-- GRID 3x3 MENU KEREN -->
+                <!-- GRID 3x3 MENU (Tanpa Emoji) -->
                 <div class="quick-grid">
-                    <button class="quick-btn active-menu" onclick="showPage('page-quick')">
-                        <span class="icon">🎚️</span> VOLUME
-                    </button>
-                    <button class="quick-btn" onclick="openSetting(1)">
-                        <span class="icon">🎛️</span> EFFECTS
-                    </button>
-                    <button class="quick-btn" onclick="openInputSetting('L')">
-                        <span class="icon">🔌</span> AUX IN
-                    </button>
-                    <button class="quick-btn" onclick="showQuickNotice('FM RADIO')">
-                        <span class="icon">📻</span> FM RADIO
-                    </button>
-                    <button class="quick-btn" onclick="showQuickNotice('PLAYER')">
-                        <span class="icon">🎵</span> PLAYER
-                    </button>
-                    <button class="quick-btn" onclick="muteAllOutputs()">
-                        <span class="icon">🔇</span> MUTE ALL
-                    </button>
-                    <button class="quick-btn" onclick="showPage('page-guide')">
-                        <span class="icon">⚙️</span> SYSTEM
-                    </button>
-                    <button class="quick-btn" onclick="showQuickNotice('LIGHTS')">
-                        <span class="icon">💡</span> LIGHTS
-                    </button>
-                    <button class="quick-btn" onclick="showQuickNotice('NETWORK')">
-                        <span class="icon">📡</span> NETWORK
-                    </button>
+                    <button class="quick-btn active-menu" onclick="showPage('page-quick')">VOLUME</button>
+                    <button class="quick-btn">EFFECTS</button>
+                    <button class="quick-btn">AUX IN</button>
+                    
+                    <button class="quick-btn">FM RADIO</button>
+                    <button class="quick-btn">PLAYER</button>
+                    <button class="quick-btn">MUTE ALL</button>
+                    
+                    <button class="quick-btn">SYSTEM</button>
+                    <button class="quick-btn">LIGHTS</button>
+                    <button class="quick-btn">NETWORK</button>
                 </div>
             </div>
 
