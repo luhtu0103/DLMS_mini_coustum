@@ -1,12 +1,12 @@
 /*
- * DLMS Mini - ESP32-S3-N16R8 Firmware V9 (Signal Generator)
- * Fitur: Internal Pink Noise & Sine Wave Generator untuk RTA Testing
+ * DLMS Mini - ESP32-S3 Firmware V10 (Compressor + Delay + Signal Gen)
+ * Fitur: I2S Stereo, BLE, FFT, Biquad DSP, Compressor, Delay Line, Pink Noise/Sine
  */
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>
+#include <BLE2902.h>          // FIX: Wajib untuk BLE Notify stabil
 #include "driver/i2s_std.h"
 #include <math.h>
 #include "esp_dsp.h"
@@ -31,6 +31,7 @@ i2s_chan_handle_t tx1_handle = NULL;
 // ==== KONFIGURASI DSP ====
 #define SAMPLE_RATE 48000.0f
 #define FFT_SIZE 256
+#define MAX_DELAY_SAMPLES 512  // Max delay ~10.6ms @ 48kHz
 
 typedef struct {
   float b0, b1, b2, a1, a2;
@@ -41,9 +42,17 @@ typedef struct {
   bool hpf_on; int hpf_slope; float hpf_freq;
   bool lpf_on; int lpf_slope; float lpf_freq;
   float peq_freq[3]; float peq_gain[3];
-  float gain_db; float delay_ms;
-  bool is_mute; bool phase_180;
+  float gain_db; float delay_ms; bool is_mute; bool phase_180;
   int routing; bool limiter_on; float limiter_thresh;
+  
+  // === COMPRESSOR PARAMETERS ===
+  bool comp_on;
+  float comp_thresh;       // Threshold (dB)
+  float comp_ratio;        // Ratio (e.g., 4.0)
+  float comp_attack_coeff; // Pre-calculated coefficient
+  float comp_release_coeff;// Pre-calculated coefficient
+  float comp_envelope;     // State internal
+  
   biquad_t hpf; biquad_t lpf; biquad_t peq[3];
 } OutputChannel;
 
@@ -58,11 +67,14 @@ typedef struct {
 InputChannel inL, inR;
 float master_volume = 0.0;
 
+// ==== VARIABEL DELAY LINE ====
+float delay_line[4][MAX_DELAY_SAMPLES];
+int delay_write_pos[4] = {0, 0, 0, 0};
+
 // ==== VARIABEL SIGNAL GENERATOR ====
 volatile int gen_type = 0; // 0=Off, 1=Pink Noise, 2=Sine Wave
-float gen_freq = 1000.0;   // Frekuensi Sine Wave (Hz)
-float gen_phase = 0.0;     // Phase accumulator untuk Sine Wave
-// State untuk Pink Noise (Paul Kellet's method)
+float gen_freq = 1000.0;
+float gen_phase = 0.0;
 float pink_b0=0, pink_b1=0, pink_b2=0, pink_b3=0, pink_b4=0, pink_b5=0, pink_b6=0;
 
 // ==== VARIABEL BLE & FFT ====
@@ -78,31 +90,6 @@ volatile int osc_buffer[50] = {0};
 int fft_sample_count = 0;
 
 // ==========================================
-// FUNGSI SIGNAL GENERATOR
-// ==========================================
-// 1. Pink Noise Generator (Efisien untuk ESP32)
-float generatePinkNoise() {
-    float white = (random(0, 65535) / 32767.5f) - 1.0f; // White noise -1.0 to 1.0
-    pink_b0 = 0.99886 * pink_b0 + white * 0.0555179;
-    pink_b1 = 0.99332 * pink_b1 + white * 0.0750759;
-    pink_b2 = 0.96900 * pink_b2 + white * 0.1538520;
-    pink_b3 = 0.86650 * pink_b3 + white * 0.3104856;
-    pink_b4 = 0.55000 * pink_b4 + white * 0.5329522;
-    pink_b5 = -0.7616 * pink_b5 - white * 0.0168980;
-    float pink = pink_b0 + pink_b1 + pink_b2 + pink_b3 + pink_b4 + pink_b5 + pink_b6 + white * 0.5362;
-    pink_b6 = white * 0.115926;
-    return pink * 0.11f; // Scale down agar tidak clipping
-}
-
-// 2. Sine Wave Generator
-float generateSineWave(float freq) {
-    float sample = sin(gen_phase);
-    gen_phase += (2.0 * M_PI * freq) / SAMPLE_RATE;
-    if (gen_phase >= 2.0 * M_PI) gen_phase -= 2.0 * M_PI;
-    return sample * 0.5f; // Scale down ke -6dB
-}
-
-// ==========================================
 // FUNGSI MATEMATIKA FILTER (BIQUAD)
 // ==========================================
 void calcBiquadHighpass(biquad_t *f, float freq, float Q) {
@@ -111,11 +98,8 @@ void calcBiquadHighpass(biquad_t *f, float freq, float Q) {
   float alpha = sin(w0) / (2.0 * Q); 
   float cosw0 = cos(w0); 
   float a0 = 1.0 + alpha;
-  f->b0 = ((1.0 + cosw0) / 2.0) / a0; 
-  f->b1 = -(1.0 + cosw0) / a0; 
-  f->b2 = ((1.0 + cosw0) / 2.0) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; 
-  f->a2 = (1.0 - alpha) / a0;
+  f->b0 = ((1.0 + cosw0) / 2.0) / a0; f->b1 = -(1.0 + cosw0) / a0; f->b2 = ((1.0 + cosw0) / 2.0) / a0; 
+  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha) / a0;
 }
 
 void calcBiquadLowpass(biquad_t *f, float freq, float Q) {
@@ -124,35 +108,49 @@ void calcBiquadLowpass(biquad_t *f, float freq, float Q) {
   float alpha = sin(w0) / (2.0 * Q); 
   float cosw0 = cos(w0); 
   float a0 = 1.0 + alpha;
-  f->b0 = ((1.0 - cosw0) / 2.0) / a0; 
-  f->b1 = (1.0 - cosw0) / a0; 
-  f->b2 = ((1.0 - cosw0) / 2.0) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; 
-  f->a2 = (1.0 - alpha) / a0;
+  f->b0 = ((1.0 - cosw0) / 2.0) / a0; f->b1 = (1.0 - cosw0) / a0; f->b2 = ((1.0 - cosw0) / 2.0) / a0; 
+  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha) / a0;
 }
 
 void calcBiquadPEQ(biquad_t *f, float freq, float gain_db, float Q) {
-  if(freq < 20) freq = 20; 
-  if(freq > 20000) freq = 20000; 
+  if(freq < 20) freq = 20; if(freq > 20000) freq = 20000; 
   float A = pow(10.0, gain_db / 40.0); 
   float w0 = 2.0 * M_PI * freq / SAMPLE_RATE; 
   float alpha = sin(w0) / (2.0 * Q); 
   float cosw0 = cos(w0); 
   float a0 = 1.0 + alpha / A;
-  f->b0 = (1.0 + alpha * A) / a0; 
-  f->b1 = (-2.0 * cosw0) / a0; 
-  f->b2 = (1.0 - alpha * A) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; 
-  f->a2 = (1.0 - alpha / A) / a0;
+  f->b0 = (1.0 + alpha * A) / a0; f->b1 = (-2.0 * cosw0) / a0; f->b2 = (1.0 - alpha * A) / a0; 
+  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha / A) / a0;
 }
 
 float processBiquad(float input, biquad_t *f) {
   float y = (f->b0 * input) + (f->b1 * f->x1) + (f->b2 * f->x2) - (f->a1 * f->y1) - (f->a2 * f->y2);
-  f->x2 = f->x1; f->x1 = input; 
-  f->y2 = f->y1; f->y1 = y; 
+  f->x2 = f->x1; f->x1 = input; f->y2 = f->y1; f->y1 = y; 
   return y;
 }
 
+// ==========================================
+// FUNGSI COMPRESSOR (Ringan & Efisien)
+// ==========================================
+float processCompressor(float input, OutputChannel *out) {
+  if (!out->comp_on) return input;
+  
+  float input_db = 20.0f * log10f(fabsf(input) + 1e-6f);
+  float gr_db = 0.0f;
+  if (input_db > out->comp_thresh) {
+    gr_db = (input_db - out->comp_thresh) * (1.0f - (1.0f / out->comp_ratio));
+  }
+  
+  float coeff = (gr_db > out->comp_envelope) ? out->comp_attack_coeff : out->comp_release_coeff;
+  out->comp_envelope = coeff * out->comp_envelope + (1.0f - coeff) * gr_db;
+  
+  float comp_gain = powf(10.0f, -out->comp_envelope / 20.0f);
+  return input * comp_gain;
+}
+
+// ==========================================
+// PROSES OUTPUT CHANNEL (Urutan: Gain -> Filter -> Comp -> Delay -> Limiter)
+// ==========================================
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
   float o = 0;
   if (out->routing == 0) o = sigL; 
@@ -162,26 +160,38 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
   o *= pow(10.0, out->gain_db / 20.0);
   if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
   if (out->lpf_on) { o = processBiquad(o, &out->lpf); if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); }
-  o = processBiquad(o, &out->peq[0]); 
-  o = processBiquad(o, &out->peq[1]); 
-  o = processBiquad(o, &out->peq[2]);
+  o = processBiquad(o, &out->peq[0]); o = processBiquad(o, &out->peq[1]); o = processBiquad(o, &out->peq[2]);
+  
+  // 1. COMPRESSOR
+  o = processCompressor(o, out);
+  
+  // 2. DELAY (Time Alignment)
+  int delay_samples = (int)(out->delay_ms * 48.0f); // 48 samples per ms
+  if (delay_samples > 0) {
+    if (delay_samples >= MAX_DELAY_SAMPLES) delay_samples = MAX_DELAY_SAMPLES - 1;
+    delay_line[ch_idx][delay_write_pos[ch_idx]] = o;
+    int read_pos = (delay_write_pos[ch_idx] - delay_samples + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
+    o = delay_line[ch_idx][read_pos];
+    delay_write_pos[ch_idx] = (delay_write_pos[ch_idx] + 1) % MAX_DELAY_SAMPLES;
+  }
+  
   if (out->phase_180) o = -o;
   if (out->limiter_on) { 
     float lim = pow(10.0, out->limiter_thresh / 20.0); 
-    if (o > lim) o = lim; 
-    if (o < -lim) o = -lim; 
+    if (o > lim) o = lim; if (o < -lim) o = -lim; 
   }
   o *= master_linear; 
   if (out->is_mute) o = 0; 
-  return constrain(o, -1.0f, 1.0f); 
+  
+  return constrain(o, -1.0f, 1.0f); // Cegah clipping
 }
 
 // ==========================================
 // CALLBACK BLE
 // ==========================================
 class MyServerCallbacks: public BLEServerCallbacks {
-  void onConnect(BLEServer* pServer) { deviceConnected = true; Serial.println("✅ HP Terhubung"); }
-  void onDisconnect(BLEServer* pServer) { deviceConnected = false; pServer->startAdvertising(); Serial.println("❌ HP Terputus"); }
+  void onConnect(BLEServer* pServer) { deviceConnected = true; }
+  void onDisconnect(BLEServer* pServer) { deviceConnected = false; pServer->startAdvertising(); }
 };
 
 class MyCallbacks: public BLECharacteristicCallbacks {
@@ -193,17 +203,11 @@ class MyCallbacks: public BLECharacteristicCallbacks {
         String perintah = dataMasuk.substring(0, posisiKoma);
         float nilai = dataMasuk.substring(posisiKoma + 1).toFloat();
         
-        // === PERINTAH SIGNAL GENERATOR ===
-        if (perintah == "SIG_GEN") {
-          gen_type = (int)nilai; // 0=Off, 1=Pink, 2=Sine
-          Serial.print("🎵 Signal Generator: "); Serial.println(gen_type);
-        }
-        else if (perintah == "SIG_FREQ") {
-          gen_freq = nilai;
-          gen_phase = 0.0; // Reset phase agar tidak glitch saat ganti frekuensi
-          Serial.print("🎵 Sine Freq: "); Serial.println(gen_freq);
-        }
-        // === PERINTAH LAINNYA ===
+        // === SIGNAL GENERATOR ===
+        if (perintah == "SIG_GEN") { gen_type = (int)nilai; if(gen_type==2) gen_phase=0.0; }
+        else if (perintah == "SIG_FREQ") { gen_freq = nilai; gen_phase = 0.0; }
+        
+        // === INPUT ===
         else if (perintah.startsWith("IN_")) {
           if (perintah == "IN_L_GAIN") inL.gain_db = nilai; 
           else if (perintah == "IN_R_GAIN") inR.gain_db = nilai;
@@ -214,10 +218,12 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           else if (perintah == "IN_R_PEQFREQ") { inR.peq_freq = nilai; calcBiquadPEQ(&inR.peq, nilai, inR.peq_gain, 1.0); }
           else if (perintah == "IN_R_PEQGAIN") { inR.peq_gain = nilai; calcBiquadPEQ(&inR.peq, inR.peq_freq, nilai, 1.0); }
         }
+        // === OUTPUT ===
         else if (perintah.startsWith("OUT")) {
           int ch = perintah.substring(3,4).toInt();
           OutputChannel *out = (ch == 1) ? &out1 : (ch == 2) ? &out2 : (ch == 3) ? &out3 : &out4;
           String param = perintah.substring(5);
+          
           if (param == "HPF_ON") out->hpf_on = (nilai > 0); 
           else if (param == "HPFFREQ") { out->hpf_freq = nilai; calcBiquadHighpass(&out->hpf, nilai, 0.707); }
           else if (param == "HPFSLOPE") out->hpf_slope = (int)nilai; 
@@ -236,6 +242,13 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           else if (param == "LIMIT") out->limiter_thresh = nilai; 
           else if (param == "MUTE") out->is_mute = (nilai > 0);
           else if (param == "PHASE") out->phase_180 = (nilai > 0);
+          
+          // Compressor Controls
+          else if (param == "COMP_ON") out->comp_on = (nilai > 0);
+          else if (param == "COMP_THRESH") out->comp_thresh = nilai;
+          else if (param == "COMP_RATIO") out->comp_ratio = nilai;
+          else if (param == "COMP_ATK") out->comp_attack_coeff = expf(-1.0f / (nilai * 48.0f)); // 48 samples/ms
+          else if (param == "COMP_REL") out->comp_release_coeff = expf(-1.0f / (nilai * 48.0f));
         }
         else if (perintah == "MASTER") { master_volume = nilai; }
         else if (perintah.startsWith("ROUTING_OUT")) {
@@ -265,19 +278,13 @@ void processFFT() {
   for (int b = 0; b < 7; b++) {
     float sum = 0; int count = 0;
     for (int i = band_bins[b]; i <= band_bins[b+1] && i < FFT_SIZE/2; i++) {
-      float real = fft_input[i*2]; 
-      float imag = fft_input[i*2+1];
-      sum += sqrt(real*real + imag*imag); 
-      count++;
+      float real = fft_input[i*2]; float imag = fft_input[i*2+1];
+      sum += sqrt(real*real + imag*imag); count++;
     }
     if(count == 0) count = 1;
     mag[b] = sum / count;
-    if (mag[b] > 0.001) { 
-      int db = (int)(20 * log10(mag[b]) + 50); 
-      spectrum[b] = constrain(db, 0, 100); 
-    } else { 
-      spectrum[b] = 0; 
-    }
+    if (mag[b] > 0.001) { int db = (int)(20 * log10(mag[b]) + 50); spectrum[b] = constrain(db, 0, 100); }
+    else { spectrum[b] = 0; }
   }
 }
 
@@ -318,13 +325,21 @@ void audioProcessingTask(void *parameter) {
       
       // === INJEKSI SIGNAL GENERATOR ===
       if (gen_type == 1) { // Pink Noise
-        float pink = generatePinkNoise();
-        rawL = pink;
-        rawR = pink;
+        float white = (random(0, 65535) / 32767.5f) - 1.0f;
+        pink_b0 = 0.99886f * pink_b0 + white * 0.0555179f;
+        pink_b1 = 0.99332f * pink_b1 + white * 0.0750759f;
+        pink_b2 = 0.96900f * pink_b2 + white * 0.1538520f;
+        pink_b3 = 0.86650f * pink_b3 + white * 0.3104856f;
+        pink_b4 = 0.55000f * pink_b4 + white * 0.5329522f;
+        pink_b5 = -0.7616f * pink_b5 - white * 0.0168980f;
+        float pink = pink_b0 + pink_b1 + pink_b2 + pink_b3 + pink_b4 + pink_b5 + pink_b6 + white * 0.5362f;
+        pink_b6 = white * 0.115926f;
+        rawL = pink * 0.5f; rawR = pink * 0.5f;
       } else if (gen_type == 2) { // Sine Wave
-        float sine = generateSineWave(gen_freq);
-        rawL = sine;
-        rawR = sine;
+        float sine = sinf(gen_phase) * 0.5f;
+        rawL = sine; rawR = sine;
+        gen_phase += (2.0f * M_PI * gen_freq) / SAMPLE_RATE;
+        if (gen_phase >= 2.0f * M_PI) gen_phase -= 2.0f * M_PI;
       }
       // ====================================
       
@@ -387,6 +402,7 @@ void bleTxTask(void *parameter) {
       snprintf(buf, sizeof(buf), "SPECTRUM:%d,%d,%d,%d,%d,%d,%d", spectrum[0], spectrum[1], spectrum[2], spectrum[3], spectrum[4], spectrum[5], spectrum[6]);
       g_levelChar->setValue(buf); g_levelChar->notify(); vTaskDelay(2 / portTICK_PERIOD_MS);
       
+      // FIX: Buffer OSC diperbesar & pakai snprintf aman
       char osc_str[300] = "OSC:";
       int pos = 4;
       for(int j=0; j<50; j++) {
@@ -405,13 +421,19 @@ void bleTxTask(void *parameter) {
 // ==========================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n🎛️ DLMS Mini V9 (Signal Gen) Starting...");
+  Serial.println("\n🎛️ DLMS Mini V10 (Compressor+Delay+SigGen) Starting...");
   
   fft_buffer = (float*)malloc(sizeof(float) * FFT_SIZE);
   fft_input = (float*)malloc(sizeof(float) * FFT_SIZE * 2);
   window = (float*)malloc(sizeof(float) * FFT_SIZE);
   dsps_wind_hann_f32(window, FFT_SIZE);
   dsps_fft2r_init_fc32(NULL, FFT_SIZE);
+  
+  // Inisialisasi Delay Line
+  for(int i=0; i<4; i++) {
+    for(int j=0; j<MAX_DELAY_SAMPLES; j++) delay_line[i][j] = 0.0f;
+    delay_write_pos[i] = 0;
+  }
   
   // I2S0: RX ADC + TX DAC1
   i2s_chan_config_t chan_cfg_0 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
@@ -444,7 +466,7 @@ void setup() {
     CHARACTERISTIC_UUID,
     BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY
   );
-  pCharacteristic->addDescriptor(new BLE2902());
+  pCharacteristic->addDescriptor(new BLE2902()); // FIX: Wajib untuk iOS/Android Notify
   pCharacteristic->setCallbacks(new MyCallbacks());
   g_levelChar = pCharacteristic;
   pService->start();
@@ -453,10 +475,15 @@ void setup() {
   pAdvertising->addServiceUUID(SERVICE_UUID);
   BLEDevice::startAdvertising();
   
-  // Init Filter Default
+  // Init Default Filters & Compressor
   for(int i=1; i<=4; i++) {
     OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
     out->delay_ms = 0.0;
+    out->comp_on = false; out->comp_thresh = -20.0; out->comp_ratio = 4.0;
+    out->comp_attack_coeff = expf(-1.0f / (10.0 * 48.0f));  // Default 10ms
+    out->comp_release_coeff = expf(-1.0f / (200.0 * 48.0f)); // Default 200ms
+    out->comp_envelope = 0.0;
+    
     calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
     for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
   }
@@ -465,7 +492,7 @@ void setup() {
   xTaskCreatePinnedToCore(audioProcessingTask, "AudioTask", 16384, NULL, 5, NULL, 1);
   xTaskCreatePinnedToCore(bleTxTask, "BleTxTask", 8192, NULL, 3, NULL, 0);
   
-  Serial.println("🚀 Firmware V9 Siap! Signal Generator Aktif.");
+  Serial.println("🚀 Firmware V10 Siap! Compressor, Delay, & Signal Gen Aktif.");
 }
 
 void loop() {
