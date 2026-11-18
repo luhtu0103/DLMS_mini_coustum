@@ -66,6 +66,7 @@ typedef struct {
 
 InputChannel inL, inR;
 float master_volume = 0.0;
+volatile bool globalBypass = false; // Bypass filter, compressor, delay and limiter globally
 
 // ==== VARIABEL DELAY LINE ====
 float delay_line[4][MAX_DELAY_SAMPLES];
@@ -158,28 +159,26 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
   else o = (sigL + sigR) * 0.5f;
   
   o *= pow(10.0, out->gain_db / 20.0);
-  if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
-  if (out->lpf_on) { o = processBiquad(o, &out->lpf); if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); }
-  o = processBiquad(o, &out->peq[0]); o = processBiquad(o, &out->peq[1]); o = processBiquad(o, &out->peq[2]);
-  
-  // 1. COMPRESSOR
-  o = processCompressor(o, out);
-  
-  // 2. DELAY (Time Alignment)
-  int delay_samples = (int)(out->delay_ms * 48.0f); // 48 samples per ms
-  if (delay_samples > 0) {
-    if (delay_samples >= MAX_DELAY_SAMPLES) delay_samples = MAX_DELAY_SAMPLES - 1;
-    delay_line[ch_idx][delay_write_pos[ch_idx]] = o;
-    int read_pos = (delay_write_pos[ch_idx] - delay_samples + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
-    o = delay_line[ch_idx][read_pos];
-    delay_write_pos[ch_idx] = (delay_write_pos[ch_idx] + 1) % MAX_DELAY_SAMPLES;
+  if (!globalBypass) {
+    if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
+    if (out->lpf_on) { o = processBiquad(o, &out->lpf); if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); }
+    o = processBiquad(o, &out->peq[0]); o = processBiquad(o, &out->peq[1]); o = processBiquad(o, &out->peq[2]);
+    o = processCompressor(o, out);
+    int delay_samples = (int)(out->delay_ms * 48.0f);
+    if (delay_samples > 0) {
+      if (delay_samples >= MAX_DELAY_SAMPLES) delay_samples = MAX_DELAY_SAMPLES - 1;
+      delay_line[ch_idx][delay_write_pos[ch_idx]] = o;
+      int read_pos = (delay_write_pos[ch_idx] - delay_samples + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
+      o = delay_line[ch_idx][read_pos];
+      delay_write_pos[ch_idx] = (delay_write_pos[ch_idx] + 1) % MAX_DELAY_SAMPLES;
+    }
+    if (out->limiter_on) {
+      float lim = pow(10.0, out->limiter_thresh / 20.0);
+      if (o > lim) o = lim;
+      if (o < -lim) o = -lim;
+    }
   }
-  
   if (out->phase_180) o = -o;
-  if (out->limiter_on) { 
-    float lim = pow(10.0, out->limiter_thresh / 20.0); 
-    if (o > lim) o = lim; if (o < -lim) o = -lim; 
-  }
   o *= master_linear; 
   if (out->is_mute) o = 0; 
   
@@ -203,8 +202,10 @@ class MyCallbacks: public BLECharacteristicCallbacks {
         String perintah = dataMasuk.substring(0, posisiKoma);
         float nilai = dataMasuk.substring(posisiKoma + 1).toFloat();
         
+        // === GLOBAL CONTROLS ===
+        if (perintah == "ALL_BYPASS") { globalBypass = (nilai > 0); }
         // === SIGNAL GENERATOR ===
-        if (perintah == "SIG_GEN") { gen_type = (int)nilai; if(gen_type==2) gen_phase=0.0; }
+        else if (perintah == "SIG_GEN") { gen_type = (int)nilai; if(gen_type==2) gen_phase=0.0; }
         else if (perintah == "SIG_FREQ") { gen_freq = nilai; gen_phase = 0.0; }
         
         // === INPUT ===
@@ -351,8 +352,10 @@ void audioProcessingTask(void *parameter) {
       
       float sampL = inL.is_mute ? 0 : (rawL * pow(10.0, inL.gain_db / 20.0));
       float sampR = inR.is_mute ? 0 : (rawR * pow(10.0, inR.gain_db / 20.0));
-      sampL = processBiquad(sampL, &inL.peq);
-      sampR = processBiquad(sampR, &inR.peq);
+      if (!globalBypass) {
+        sampL = processBiquad(sampL, &inL.peq);
+        sampR = processBiquad(sampR, &inR.peq);
+      }
       
       float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear, 0);
       float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear, 1);
