@@ -239,6 +239,12 @@
                     <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)">P2</button>
                     <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)">P3</button>
                     <button class="preset-btn bypass" onclick="toggleBypass(this)">BYPASS</button>
+                    <!-- TOMBOL SIGNAL GENERATOR -->
+                    <div style="display: flex; gap: 3px; margin-top: 4px; height: 18px; flex-shrink: 0;">
+                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,0')" style="border-color: var(--neon-red); color: var(--neon-red);">OFF</button>
+                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,1')" style="border-color: var(--neon-yellow); color: var(--neon-yellow);">PINK</button>
+                        <button class="preset-btn" onclick="sendBLEData('SIG_GEN,2')" style="border-color: var(--neon-blue); color: var(--neon-blue);">1kHz</button>
+                    </div>
                 </div>
             </div>
 
