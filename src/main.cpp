@@ -1,12 +1,12 @@
 /*
- * DLMS Mini - ESP32-S3-N16R8 Firmware V8 (Delay + Bi-Amp Ready)
- * Fitur: PCM1808 + 2x PCM5102, Biquad DSP, FFT, BLE, Delay Line (Time Alignment)
+ * DLMS Mini - ESP32-S3-N16R8 Firmware V9 (Signal Generator)
+ * Fitur: Internal Pink Noise & Sine Wave Generator untuk RTA Testing
  */
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <BLE2902.h>          // FIX: Wajib untuk BLE Notify stabil
+#include <BLE2902.h>
 #include "driver/i2s_std.h"
 #include <math.h>
 #include "esp_dsp.h"
@@ -31,7 +31,6 @@ i2s_chan_handle_t tx1_handle = NULL;
 // ==== KONFIGURASI DSP ====
 #define SAMPLE_RATE 48000.0f
 #define FFT_SIZE 256
-#define MAX_DELAY_SAMPLES 512  // Max delay ~10.6ms @ 48kHz
 
 typedef struct {
   float b0, b1, b2, a1, a2;
@@ -42,8 +41,7 @@ typedef struct {
   bool hpf_on; int hpf_slope; float hpf_freq;
   bool lpf_on; int lpf_slope; float lpf_freq;
   float peq_freq[3]; float peq_gain[3];
-  float gain_db; 
-  float delay_ms; // FITUR BARU: Delay Time (ms)
+  float gain_db; float delay_ms;
   bool is_mute; bool phase_180;
   int routing; bool limiter_on; float limiter_thresh;
   biquad_t hpf; biquad_t lpf; biquad_t peq[3];
@@ -60,9 +58,12 @@ typedef struct {
 InputChannel inL, inR;
 float master_volume = 0.0;
 
-// ==== VARIABEL DELAY LINE ====
-float delay_line[4][MAX_DELAY_SAMPLES];
-int delay_write_pos[4] = {0, 0, 0, 0};
+// ==== VARIABEL SIGNAL GENERATOR ====
+volatile int gen_type = 0; // 0=Off, 1=Pink Noise, 2=Sine Wave
+float gen_freq = 1000.0;   // Frekuensi Sine Wave (Hz)
+float gen_phase = 0.0;     // Phase accumulator untuk Sine Wave
+// State untuk Pink Noise (Paul Kellet's method)
+float pink_b0=0, pink_b1=0, pink_b2=0, pink_b3=0, pink_b4=0, pink_b5=0, pink_b6=0;
 
 // ==== VARIABEL BLE & FFT ====
 bool deviceConnected = false;
@@ -75,6 +76,31 @@ volatile int g_levelL = 0, g_levelR = 0;
 volatile int g_levelOut1 = 0, g_levelOut2 = 0, g_levelOut3 = 0, g_levelOut4 = 0;
 volatile int osc_buffer[50] = {0};
 int fft_sample_count = 0;
+
+// ==========================================
+// FUNGSI SIGNAL GENERATOR
+// ==========================================
+// 1. Pink Noise Generator (Efisien untuk ESP32)
+float generatePinkNoise() {
+    float white = (random(0, 65535) / 32767.5f) - 1.0f; // White noise -1.0 to 1.0
+    pink_b0 = 0.99886 * pink_b0 + white * 0.0555179;
+    pink_b1 = 0.99332 * pink_b1 + white * 0.0750759;
+    pink_b2 = 0.96900 * pink_b2 + white * 0.1538520;
+    pink_b3 = 0.86650 * pink_b3 + white * 0.3104856;
+    pink_b4 = 0.55000 * pink_b4 + white * 0.5329522;
+    pink_b5 = -0.7616 * pink_b5 - white * 0.0168980;
+    float pink = pink_b0 + pink_b1 + pink_b2 + pink_b3 + pink_b4 + pink_b5 + pink_b6 + white * 0.5362;
+    pink_b6 = white * 0.115926;
+    return pink * 0.11f; // Scale down agar tidak clipping
+}
+
+// 2. Sine Wave Generator
+float generateSineWave(float freq) {
+    float sample = sin(gen_phase);
+    gen_phase += (2.0 * M_PI * freq) / SAMPLE_RATE;
+    if (gen_phase >= 2.0 * M_PI) gen_phase -= 2.0 * M_PI;
+    return sample * 0.5f; // Scale down ke -6dB
+}
 
 // ==========================================
 // FUNGSI MATEMATIKA FILTER (BIQUAD)
@@ -127,71 +153,26 @@ float processBiquad(float input, biquad_t *f) {
   return y;
 }
 
-// ==========================================
-// FUNGSI DELAY (TIME ALIGNMENT)
-// ==========================================
-float applyDelay(float input, int ch, float delay_ms) {
-  // Konversi ms ke sampel (48 sampel per 1ms)
-  int delay_samples = (int)(delay_ms * (SAMPLE_RATE / 1000.0f));
-  
-  if (delay_samples <= 0) return input;
-  if (delay_samples >= MAX_DELAY_SAMPLES) delay_samples = MAX_DELAY_SAMPLES - 1;
-
-  // Tulis sampel baru ke buffer
-  delay_line[ch][delay_write_pos[ch]] = input;
-  
-  // Hitung posisi baca (mundur sebanyak delay_samples)
-  int read_pos = (delay_write_pos[ch] - delay_samples + MAX_DELAY_SAMPLES) % MAX_DELAY_SAMPLES;
-  float output = delay_line[ch][read_pos];
-  
-  // Majukan posisi tulis (circular buffer)
-  delay_write_pos[ch] = (delay_write_pos[ch] + 1) % MAX_DELAY_SAMPLES;
-  
-  return output;
-}
-
-// ==========================================
-// PROSES OUTPUT CHANNEL
-// ==========================================
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
   float o = 0;
-  
-  // Routing
   if (out->routing == 0) o = sigL; 
   else if (out->routing == 1) o = sigR; 
   else o = (sigL + sigR) * 0.5f;
   
-  // Gain
   o *= pow(10.0, out->gain_db / 20.0);
-  
-  // HPF
   if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
-  // LPF
   if (out->lpf_on) { o = processBiquad(o, &out->lpf); if (out->lpf_slope == 24) o = processBiquad(o, &out->lpf); }
-  
-  // PEQ 3-Band
   o = processBiquad(o, &out->peq[0]); 
   o = processBiquad(o, &out->peq[1]); 
   o = processBiquad(o, &out->peq[2]);
-  
-  // DELAY (Time Alignment) - Diletakkan setelah EQ
-  o = applyDelay(o, ch_idx, out->delay_ms);
-  
-  // Phase
   if (out->phase_180) o = -o;
-  
-  // Limiter
   if (out->limiter_on) { 
     float lim = pow(10.0, out->limiter_thresh / 20.0); 
     if (o > lim) o = lim; 
     if (o < -lim) o = -lim; 
   }
-  
-  // Master Volume & Mute
   o *= master_linear; 
   if (out->is_mute) o = 0; 
-  
-  // Cegah Clipping
   return constrain(o, -1.0f, 1.0f); 
 }
 
@@ -212,7 +193,18 @@ class MyCallbacks: public BLECharacteristicCallbacks {
         String perintah = dataMasuk.substring(0, posisiKoma);
         float nilai = dataMasuk.substring(posisiKoma + 1).toFloat();
         
-        if (perintah.startsWith("IN_")) {
+        // === PERINTAH SIGNAL GENERATOR ===
+        if (perintah == "SIG_GEN") {
+          gen_type = (int)nilai; // 0=Off, 1=Pink, 2=Sine
+          Serial.print("🎵 Signal Generator: "); Serial.println(gen_type);
+        }
+        else if (perintah == "SIG_FREQ") {
+          gen_freq = nilai;
+          gen_phase = 0.0; // Reset phase agar tidak glitch saat ganti frekuensi
+          Serial.print("🎵 Sine Freq: "); Serial.println(gen_freq);
+        }
+        // === PERINTAH LAINNYA ===
+        else if (perintah.startsWith("IN_")) {
           if (perintah == "IN_L_GAIN") inL.gain_db = nilai; 
           else if (perintah == "IN_R_GAIN") inR.gain_db = nilai;
           else if (perintah == "IN_L_MUTE") inL.is_mute = (nilai > 0); 
@@ -226,7 +218,6 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           int ch = perintah.substring(3,4).toInt();
           OutputChannel *out = (ch == 1) ? &out1 : (ch == 2) ? &out2 : (ch == 3) ? &out3 : &out4;
           String param = perintah.substring(5);
-          
           if (param == "HPF_ON") out->hpf_on = (nilai > 0); 
           else if (param == "HPFFREQ") { out->hpf_freq = nilai; calcBiquadHighpass(&out->hpf, nilai, 0.707); }
           else if (param == "HPFSLOPE") out->hpf_slope = (int)nilai; 
@@ -240,7 +231,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           else if (param == "PEQ3FREQ") { out->peq_freq[2] = nilai; calcBiquadPEQ(&out->peq[2], nilai, out->peq_gain[2], 1.0); }
           else if (param == "PEQ3GAIN") { out->peq_gain[2] = nilai; calcBiquadPEQ(&out->peq[2], out->peq_freq[2], nilai, 1.0); }
           else if (param == "GAIN") out->gain_db = nilai; 
-          else if (param == "DELAY") out->delay_ms = nilai; // FITUR BARU: Simpan nilai delay
+          else if (param == "DELAY") out->delay_ms = nilai;
           else if (param == "LIMIT_ON") out->limiter_on = (nilai > 0);
           else if (param == "LIMIT") out->limiter_thresh = nilai; 
           else if (param == "MUTE") out->is_mute = (nilai > 0);
@@ -325,6 +316,18 @@ void audioProcessingTask(void *parameter) {
       float rawL = rx_buf[i] / 32768.0f;
       float rawR = rx_buf[i+1] / 32768.0f;
       
+      // === INJEKSI SIGNAL GENERATOR ===
+      if (gen_type == 1) { // Pink Noise
+        float pink = generatePinkNoise();
+        rawL = pink;
+        rawR = pink;
+      } else if (gen_type == 2) { // Sine Wave
+        float sine = generateSineWave(gen_freq);
+        rawL = sine;
+        rawR = sine;
+      }
+      // ====================================
+      
       if (fft_sample_count < FFT_SIZE) {
         fft_buffer[fft_sample_count] = (rawL + rawR) * 0.5f;
         fft_sample_count++;
@@ -336,7 +339,6 @@ void audioProcessingTask(void *parameter) {
       sampL = processBiquad(sampL, &inL.peq);
       sampR = processBiquad(sampR, &inR.peq);
       
-      // Pemrosesan dengan Delay (ch_idx: 0,1,2,3)
       float finalO1 = processOutputChannel(&out1, sampL, sampR, master_linear, 0);
       float finalO2 = processOutputChannel(&out2, sampL, sampR, master_linear, 1);
       float finalO3 = processOutputChannel(&out3, sampL, sampR, master_linear, 2);
@@ -403,19 +405,13 @@ void bleTxTask(void *parameter) {
 // ==========================================
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n🎛️ DLMS Mini V8 (Delay Enabled) Starting...");
+  Serial.println("\n🎛️ DLMS Mini V9 (Signal Gen) Starting...");
   
   fft_buffer = (float*)malloc(sizeof(float) * FFT_SIZE);
   fft_input = (float*)malloc(sizeof(float) * FFT_SIZE * 2);
   window = (float*)malloc(sizeof(float) * FFT_SIZE);
   dsps_wind_hann_f32(window, FFT_SIZE);
   dsps_fft2r_init_fc32(NULL, FFT_SIZE);
-  
-  // Inisialisasi Buffer Delay (Bersihkan memori)
-  for(int i=0; i<4; i++) {
-    for(int j=0; j<MAX_DELAY_SAMPLES; j++) delay_line[i][j] = 0.0f;
-    delay_write_pos[i] = 0;
-  }
   
   // I2S0: RX ADC + TX DAC1
   i2s_chan_config_t chan_cfg_0 = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
@@ -460,7 +456,7 @@ void setup() {
   // Init Filter Default
   for(int i=1; i<=4; i++) {
     OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
-    out->delay_ms = 0.0; // Default delay 0ms
+    out->delay_ms = 0.0;
     calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
     for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
   }
@@ -469,7 +465,7 @@ void setup() {
   xTaskCreatePinnedToCore(audioProcessingTask, "AudioTask", 16384, NULL, 5, NULL, 1);
   xTaskCreatePinnedToCore(bleTxTask, "BleTxTask", 8192, NULL, 3, NULL, 0);
   
-  Serial.println("🚀 Firmware V8 Siap! Delay Line Aktif.");
+  Serial.println("🚀 Firmware V9 Siap! Signal Generator Aktif.");
 }
 
 void loop() {
