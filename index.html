@@ -283,6 +283,40 @@
             .preset-grid-four { gap: 5px; }
             .preset-grid-four .preset-btn { min-height: 42px; }
         }
+    
+/* === MIXER CHANNEL STRIP (Style MixDeskEQ) === */
+.mixer-container { display:flex; gap:8px; padding:10px; overflow-x:auto; flex:1; min-height:0; justify-content:center; align-items:stretch; }
+.channel-strip { background:linear-gradient(180deg,#0d1627 0%,#050a14 100%); border:1px solid #1a2a40; border-top:3px solid var(--channel-color,var(--neon-blue)); border-radius:8px; padding:8px 6px; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:90px; box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05); position:relative; }
+.channel-strip.muted { opacity:.5; filter:grayscale(.5); }
+.channel-header { background:var(--channel-color,var(--neon-blue)); color:#000; font-size:11px; font-weight:bold; padding:4px 10px; border-radius:4px; width:100%; box-sizing:border-box; text-align:center; letter-spacing:1px; text-transform:uppercase; box-shadow:0 0 8px var(--channel-glow,rgba(0,229,255,.4)); }
+.knob-wrapper { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.knob-label { font-size:7px; color:var(--text-dim); letter-spacing:.5px; }
+.knob { width:40px; height:40px; flex-shrink:0; border-radius:50%; background:conic-gradient(from 225deg,var(--channel-color,var(--neon-blue)) var(--knob-fill,50%),#1a2a40 var(--knob-fill,50%)); position:relative; cursor:ns-resize; touch-action:none; box-shadow:0 2px 6px rgba(0,0,0,.6),inset 0 1px 2px rgba(255,255,255,.1); border:2px solid #0a1420; }
+.knob::after { content:''; position:absolute; top:4px; left:50%; width:2px; height:12px; background:#fff; transform:translateX(-50%) rotate(var(--knob-angle,0deg)); transform-origin:1px 16px; border-radius:1px; box-shadow:0 0 3px rgba(255,255,255,.8); pointer-events:none; }
+.knob-value { font-size:9px; color:#fff; font-weight:bold; font-family:monospace; }
+.fader-meter-area { display:flex; gap:4px; height:160px; align-items:stretch; width:100%; justify-content:center; }
+.led-meter-vertical { width:10px; height:100%; box-sizing:border-box; background:#03060a; border:1px solid #1a2a40; border-radius:3px; display:flex; flex-direction:column-reverse; padding:1px; gap:1px; }
+.led-meter-vertical .led { flex:1; min-height:0; background:#111; border-radius:1px; transition:background .05s; }
+.led-meter-vertical .led.on { background:var(--neon-green); box-shadow:0 0 3px var(--neon-green); }
+.led-meter-vertical .led.warn { background:var(--neon-yellow); box-shadow:0 0 3px var(--neon-yellow); }
+.led-meter-vertical .led.peak { background:var(--neon-red); box-shadow:0 0 3px var(--neon-red); }
+.fader-track { width:30px; height:100%; background:#03060a; border:1px solid #1a2a40; border-radius:4px; box-sizing:border-box; position:relative; display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden; touch-action:none; }
+.fader-track::before { content:''; position:absolute; left:50%; top:0; bottom:0; width:2px; background:#1a2a40; transform:translateX(-50%); pointer-events:none; }
+.fader-thumb { width:26px; height:14px; box-sizing:border-box; background:linear-gradient(180deg,#2a3a5a 0%,#0d1627 50%,#2a3a5a 100%); border:1px solid var(--channel-color,var(--neon-blue)); border-radius:3px; position:absolute; left:50%; transform:translateX(-50%); box-shadow:0 2px 6px rgba(0,0,0,.8),0 0 8px var(--channel-glow,rgba(0,229,255,.3)); cursor:grab; z-index:2; pointer-events:none; }
+.fader-thumb::after { content:''; position:absolute; top:50%; left:3px; right:3px; height:1px; background:var(--channel-color,var(--neon-blue)); transform:translateY(-50%); box-shadow:0 0 3px var(--channel-color,var(--neon-blue)); }
+.fader-track:active .fader-thumb { cursor:grabbing; }
+.db-display { font-size:10px; color:var(--channel-color,var(--neon-blue)); font-weight:bold; font-family:monospace; text-align:center; background:#03060a; padding:2px 4px; border-radius:3px; border:1px solid #1a2a40; min-width:50px; box-sizing:border-box; }
+.strip-buttons { display:flex; flex-direction:column; gap:4px; width:100%; }
+.strip-btn { background:#03060a; color:var(--text-dim); border:1px solid #1a2a40; padding:6px 0; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer; letter-spacing:.5px; transition:all .15s; }
+.strip-btn.mute-btn.active { background:var(--neon-red); color:#fff; border-color:var(--neon-red); box-shadow:0 0 8px rgba(255,0,51,.5); }
+.strip-btn.phase-btn.active { background:var(--neon-yellow); color:#000; border-color:var(--neon-yellow); box-shadow:0 0 8px rgba(255,170,0,.5); }
+.strip-btn:active { transform:scale(.95); }
+.channel-strip.master { --channel-color:var(--neon-green); --channel-glow:rgba(0,255,136,.4); border-top-color:var(--neon-green); }
+.mixer-container::-webkit-scrollbar { height:4px; }
+.mixer-container::-webkit-scrollbar-track { background:#03060a; }
+.mixer-container::-webkit-scrollbar-thumb { background:var(--neon-blue); border-radius:2px; }
+@media (max-width:480px) { .mixer-container { justify-content:flex-start; gap:6px; padding:8px 4px; } .channel-strip { min-width:76px; padding:7px 4px; } .fader-meter-area { height:clamp(100px,24vh,160px); } .channel-header { font-size:10px; padding:4px 3px; } }
+
     </style>
 </head>
 <body>
@@ -628,22 +662,20 @@
 </div>
 
 <!-- ================= HALAMAN QUICK ACCESS (PINDAHAN) ================= -->
+<!-- ================= HALAMAN QUICK ACCESS (MIXER STYLE) ================= -->
 <div id="page-quick" class="page">
     <div class="setting-header">
         <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
-        <div class="title" style="font-size: 12px;">OUTPUT VOLUME</div>
-        <div style="width: 80px;"></div>
+        <div class="title" style="font-size: 12px;">OUTPUT MIXER</div>
+        <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
     </div>
-    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
-        <div class="control-card volume-eq-card">
-            <div class="card-title" style="color: var(--neon-blue);">4-CHANNEL EQUALISER CONTROL</div>
-            <div class="volume-eq-list">
-                <div class="volume-eq-row out1"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 1</span></div><input type="range" id="dash-vol-1" min="-60" max="12" value="0" oninput="syncVolFromDash(1, this.value)"><span id="val-o1" class="eq-value">0 dB</span></div>
-                <div class="volume-eq-row out2"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 2</span></div><input type="range" id="dash-vol-2" min="-60" max="12" value="0" oninput="syncVolFromDash(2, this.value)"><span id="val-o2" class="eq-value">0 dB</span></div>
-                <div class="volume-eq-row out3"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 3</span></div><input type="range" id="dash-vol-3" min="-60" max="12" value="0" oninput="syncVolFromDash(3, this.value)"><span id="val-o3" class="eq-value">0 dB</span></div>
-                <div class="volume-eq-row out4"><div class="eq-channel"><span class="eq-dot"></span><span>OUT 4</span></div><input type="range" id="dash-vol-4" min="-60" max="12" value="0" oninput="syncVolFromDash(4, this.value)"><span id="val-o4" class="eq-value">0 dB</span></div>
-            </div>
-        </div>
+    <div class="mixer-container" id="mixer-container">
+        <!-- Channel strips dibuat otomatis oleh JavaScript -->
+    </div>
+    <div class="status-bar">
+        <div class="status-item">4-CHANNEL MIXER</div>
+        <div class="status-item">SAMPLE RATE: 48 kHz</div>
+        <div class="status-item">MODE: BI-AMP</div>
     </div>
 </div>
 
@@ -914,8 +946,13 @@
                 const parts = text.split(':');
                 if(parts.length === 3) {
                     const target = parts[1].replace('_','').toLowerCase();
-                    const level = Math.min(100, Math.max(0, parseInt(parts[2])));
+                    const parsedLevel = parseInt(parts[2], 10);
+                    const level = Number.isFinite(parsedLevel) ? Math.min(100, Math.max(0, parsedLevel)) : 0;
                     document.querySelectorAll('[data-meter="' + target + '"]').forEach(el => { updateBarVisual(el, level); });
+                    if (target.startsWith('out')) {
+                        const chId = parseInt(target.replace('out',''), 10);
+                        if (chId >= 1 && chId <= 4) updateStripMeter(chId, level);
+                    }
                 }
             }
         }
@@ -1381,31 +1418,198 @@
         }
         function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { let btn = document.getElementById('btn-p' + i); if(btn) { if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } } }
         
-        function showPage(pageId) { 
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
-            document.getElementById(pageId).classList.add('active'); 
-            
-            // Auto-stop RTA jika pindah ke halaman lain
-            if (pageId !== 'page-rta' && rtaActive) {
-                toggleRTA();
-            }
-            if (pageId === 'page-rta') {
-                rtaPageActive = true;
-            } else {
-                rtaPageActive = false;
-            }
-            
-            if(pageId === 'page-front') syncDashboardUI();
+        function showPage(pageId) {
+            const page = document.getElementById(pageId);
+            if (!page) return;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            page.classList.add('active');
+            if (pageId !== 'page-rta' && rtaActive) toggleRTA();
+            rtaPageActive = (pageId === 'page-rta');
+            if (pageId === 'page-front') syncDashboardUI();
+            if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
         }
 
-        window.onload = () => { 
-            loadStateToUI(1); 
-            loadInputUI('L'); 
-            syncDashboardUI(); 
-            let savedName = localStorage.getItem('DLMS_DEVICE_NAME');
-            if(savedName) {
-                document.getElementById('dash-title').innerText = savedName;
-            }
+// === MIXER CHANNEL STRIP BUILDER ===
+const CHANNEL_CONFIG = [
+    { id:1, name:'OUT 1', color:'var(--color-out1)', glow:'rgba(0,229,255,0.4)', meterKey:'out1' },
+    { id:2, name:'OUT 2', color:'var(--color-out2)', glow:'rgba(255,145,0,0.4)', meterKey:'out2' },
+    { id:3, name:'OUT 3', color:'var(--color-out3)', glow:'rgba(0,255,136,0.4)', meterKey:'out3' },
+    { id:4, name:'OUT 4', color:'var(--color-out4)', glow:'rgba(255,0,51,0.4)', meterKey:'out4' }
+];
+
+function buildMixer() {
+    const container = document.getElementById('mixer-container');
+    if (!container) return;
+    container.innerHTML = '';
+    CHANNEL_CONFIG.forEach(ch => {
+        const st = globalState[ch.id];
+        if (!st) return;
+        const strip = document.createElement('div');
+        strip.className = 'channel-strip' + (st.isMute ? ' muted' : '');
+        strip.style.setProperty('--channel-color', ch.color);
+        strip.style.setProperty('--channel-glow', ch.glow);
+        strip.dataset.channel = ch.id;
+        const knobPercent = Math.max(0, Math.min(100, ((Number(st.gain) + 60) / 72) * 100));
+        const knobAngle = -135 + (knobPercent / 100) * 270;
+        strip.innerHTML = `
+            <div class="channel-header">${ch.name}</div>
+            <div class="knob-wrapper">
+                <div class="knob-label">GAIN</div>
+                <div class="knob" data-knob="${ch.id}" style="--knob-fill:${knobPercent}%;--knob-angle:${knobAngle}deg;" role="slider" aria-label="${ch.name} gain" tabindex="0"></div>
+                <div class="knob-value" id="knob-val-${ch.id}">${Number(st.gain).toFixed(1)}</div>
+            </div>
+            <div class="fader-meter-area">
+                <div class="led-meter-vertical" id="meter-${ch.id}">${Array.from({length:12},()=>'<div class="led"></div>').join('')}</div>
+                <div class="fader-track" data-fader="${ch.id}" role="slider" aria-label="${ch.name} fader" tabindex="0">
+                    <div class="fader-thumb" id="thumb-${ch.id}"></div>
+                </div>
+            </div>
+            <div class="db-display" id="db-${ch.id}">${Number(st.gain).toFixed(1)} dB</div>
+            <div class="strip-buttons">
+                <button class="strip-btn mute-btn ${st.isMute?'active':''}" id="mute-btn-${ch.id}" onclick="toggleStripMute(${ch.id})" aria-pressed="${!!st.isMute}">MUTE</button>
+                <button class="strip-btn phase-btn ${st.phase180?'active':''}" id="phase-btn-${ch.id}" onclick="toggleStripPhase(${ch.id})" aria-pressed="${!!st.phase180}">${st.phase180?'180°':'Ø'}</button>
+            </div>`;
+        container.appendChild(strip);
+    });
+    container.querySelectorAll('.fader-track').forEach(attachFaderDrag);
+    container.querySelectorAll('.knob').forEach(attachKnobDrag);
+    CHANNEL_CONFIG.forEach(ch => updateFaderPosition(ch.id));
+}
+
+function updateFaderPosition(chId) {
+    const track=document.querySelector('.fader-track[data-fader="'+chId+'"]');
+    const thumb=document.getElementById('thumb-'+chId);
+    if(!track||!thumb||!globalState[chId]) return;
+    const gain=Math.max(-60,Math.min(12,Number(globalState[chId].gain)||0));
+    const percent=(gain+60)/72;
+    const usable=Math.max(0,track.clientHeight-thumb.offsetHeight);
+    thumb.style.top=(usable*(1-percent))+'px';
+}
+
+function updateKnobVisual(chId) {
+    const knob=document.querySelector('.knob[data-knob="'+chId+'"]');
+    if(!knob||!globalState[chId]) return;
+    const gain=Math.max(-60,Math.min(12,Number(globalState[chId].gain)||0));
+    const percent=((gain+60)/72)*100;
+    knob.style.setProperty('--knob-fill',percent+'%');
+    knob.style.setProperty('--knob-angle',(-135+(percent/100)*270)+'deg');
+    const val=document.getElementById('knob-val-'+chId);
+    if(val) val.innerText=gain.toFixed(1);
+}
+
+function updateDbDisplay(chId) {
+    const el=document.getElementById('db-'+chId);
+    if(el) el.innerText=Number(globalState[chId].gain).toFixed(1)+' dB';
+    const slider=document.getElementById('dash-vol-'+chId);
+    if(slider) slider.value=globalState[chId].gain;
+    const label=document.getElementById('val-o'+chId);
+    if(label) label.innerText=Number(globalState[chId].gain).toFixed(1)+' dB';
+}
+
+function setChannelGain(chId,gain) {
+    if(!globalState[chId]) return;
+    gain=Math.round(Math.max(-60,Math.min(12,Number(gain)||0))*10)/10;
+    globalState[chId].gain=gain;
+    sendBLEData('OUT'+chId+'_GAIN,'+gain);
+    updateFaderPosition(chId);
+    updateKnobVisual(chId);
+    updateDbDisplay(chId);
+    if(isLinked) applyGlobalLink(chId);
+}
+
+function attachFaderDrag(track) {
+    const chId=Number(track.dataset.fader);
+    let pointerId=null;
+    const move=e=>{
+        const rect=track.getBoundingClientRect();
+        const thumbHeight=14;
+        const usable=Math.max(1,rect.height-thumbHeight);
+        const percent=Math.max(0,Math.min(1,1-((e.clientY-rect.top-thumbHeight/2)/usable)));
+        setChannelGain(chId,-60+percent*72);
+    };
+    track.addEventListener('pointerdown',e=>{
+        e.preventDefault();
+        pointerId=e.pointerId;
+        track.setPointerCapture(pointerId);
+        move(e);
+    });
+    track.addEventListener('pointermove',e=>{if(pointerId===e.pointerId) move(e);});
+    const end=e=>{if(pointerId===e.pointerId) pointerId=null;};
+    track.addEventListener('pointerup',end);
+    track.addEventListener('pointercancel',end);
+    track.addEventListener('keydown',e=>{
+        if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();setChannelGain(chId,globalState[chId].gain+1);}
+        if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();setChannelGain(chId,globalState[chId].gain-1);}
+    });
+}
+
+function attachKnobDrag(knob) {
+    const chId=Number(knob.dataset.knob);
+    let startY=0,startGain=0,pointerId=null;
+    knob.addEventListener('pointerdown',e=>{
+        e.preventDefault();pointerId=e.pointerId;startY=e.clientY;startGain=Number(globalState[chId].gain);
+        knob.setPointerCapture(pointerId);
+    });
+    knob.addEventListener('pointermove',e=>{
+        if(pointerId!==e.pointerId)return;
+        setChannelGain(chId,startGain+(startY-e.clientY)*0.3);
+    });
+    const end=e=>{if(pointerId===e.pointerId)pointerId=null;};
+    knob.addEventListener('pointerup',end);
+    knob.addEventListener('pointercancel',end);
+    knob.addEventListener('keydown',e=>{
+        if(e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();setChannelGain(chId,globalState[chId].gain+1);}
+        if(e.key==='ArrowDown'||e.key==='ArrowLeft'){e.preventDefault();setChannelGain(chId,globalState[chId].gain-1);}
+    });
+}
+
+function toggleStripMute(chId) {
+    const btn=document.getElementById('mute-btn-'+chId);
+    const strip=btn?.closest('.channel-strip');
+    if(!btn||!strip||!globalState[chId])return;
+    globalState[chId].isMute=!globalState[chId].isMute;
+    btn.classList.toggle('active',globalState[chId].isMute);
+    btn.setAttribute('aria-pressed',String(globalState[chId].isMute));
+    strip.classList.toggle('muted',globalState[chId].isMute);
+    sendBLEData('OUT'+chId+'_MUTE,'+(globalState[chId].isMute?1:0));
+    syncDashboardUI();
+}
+
+function toggleStripPhase(chId) {
+    const btn=document.getElementById('phase-btn-'+chId);
+    if(!btn||!globalState[chId])return;
+    globalState[chId].phase180=!globalState[chId].phase180;
+    btn.classList.toggle('active',globalState[chId].phase180);
+    btn.innerText=globalState[chId].phase180?'180°':'Ø';
+    btn.setAttribute('aria-pressed',String(globalState[chId].phase180));
+    sendBLEData('OUT'+chId+'_PHASE,'+(globalState[chId].phase180?1:0));
+    syncDashboardUI();
+}
+
+function updateStripMeter(chId,level) {
+    const meter=document.getElementById('meter-'+chId);
+    if(!meter)return;
+    level=Math.max(0,Math.min(100,Number(level)||0));
+    const leds=meter.querySelectorAll('.led');
+    const activeCount=Math.round((level/100)*leds.length);
+    leds.forEach((led,i)=>{
+        led.className='led';
+        if(i<activeCount){
+            if(i>=leds.length-1)led.classList.add('peak');
+            else if(i>=leds.length-3)led.classList.add('warn');
+            else led.classList.add('on');
+        }
+    });
+}
+
+
+        window.onload = () => {
+            loadStateToUI(1);
+            loadInputUI('L');
+            syncDashboardUI();
+            const savedName = localStorage.getItem('DLMS_DEVICE_NAME');
+            if (savedName) document.getElementById('dash-title').innerText = savedName;
+            buildMixer();
         };
     </script>
 
