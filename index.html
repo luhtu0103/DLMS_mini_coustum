@@ -337,6 +337,18 @@
 #bypass-all-btn{width:100%;margin-bottom:12px}
 #bypass-all-btn.active{border-color:var(--neon-red);color:var(--neon-red);box-shadow:0 0 12px rgba(255,0,51,.3)}
 @media(max-width:420px){.scene-card{padding:11px 8px}.scene-icon{font-size:24px}.preset-large-btn{padding:14px 0}}
+
+/* Layout helpers for the effects page */
+.sub-page-header{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--panel-bg);padding-bottom:6px;margin-bottom:8px;flex-shrink:0}
+.sub-page-title{font-size:12px;font-weight:bold;letter-spacing:1px;color:var(--neon-blue);text-align:center;flex:1}
+.sub-page-header .guide-header-btn{flex-shrink:0}
+.sub-page-content{display:flex;flex-direction:column;flex:1;gap:4px;min-height:0;padding:2px 4px 10px;overflow-y:auto}
+.sub-page-content::-webkit-scrollbar{width:3px}
+.sub-page-content::-webkit-scrollbar-thumb{background:var(--neon-blue)}
+.feature-card{background:var(--panel-bg);border:1px solid #1a2a40;border-radius:8px;padding:10px;display:flex;flex-direction:column;flex-shrink:0}
+.feature-card-title{font-size:10px;font-weight:bold;letter-spacing:.7px;color:var(--neon-yellow);margin-bottom:4px}
+.big-toggle-btn{background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);border:1px solid #1a2a40;border-radius:8px;padding:14px 10px;font-size:11px;font-weight:bold;letter-spacing:.6px;cursor:pointer;transition:all .2s}
+.big-toggle-btn:active{transform:scale(.98)}
 </style>
 </head>
 <body>
