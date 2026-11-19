@@ -425,6 +425,20 @@
 @keyframes monitorPulse{0%,100%{opacity:1}50%{opacity:.4}}
 @media(max-height:700px){.monitor-content{gap:4px;padding:5px}.scope-section{flex:2}.meter-section{flex:1.6;padding:5px}.spectrum-mini-section{flex:.7}.meter-title{margin-bottom:2px}}
 
+
+/* === NOTES PAGE === */
+.notes-tabs{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;padding-bottom:3px}
+.notes-tab{padding:8px 12px;font-size:9px;font-weight:bold;border-radius:4px;border:1px solid #1a2a40;background:var(--panel-bg,#101a2a);color:var(--text-secondary,#9aabc2);white-space:nowrap;cursor:pointer}
+.notes-tab.active{background:var(--neon-blue,#00e5ff);border-color:var(--neon-blue,#00e5ff);color:#07111f}
+.notes-editor-card{border:1px solid #1a2a40;border-radius:8px;padding:10px;background:rgba(10,20,35,.65)}
+.notes-editor-title{font-size:11px;font-weight:bold;letter-spacing:1px;margin-bottom:8px;color:var(--neon-blue,#00e5ff)}
+.notes-textarea{width:100%;min-height:42vh;resize:vertical;box-sizing:border-box;background:#07111f;color:var(--text-primary,#e7f1ff);border:1px solid #243850;border-radius:5px;padding:10px;font:12px/1.6 monospace;outline:none}
+.notes-textarea:focus{border-color:var(--neon-blue,#00e5ff)}
+.notes-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.notes-action-btn{padding:8px 12px;border:1px solid #243850;border-radius:4px;background:#102035;color:#dcecff;font-size:9px;font-weight:bold;cursor:pointer}
+.notes-action-btn.primary{background:var(--neon-blue,#00e5ff);color:#06101d;border-color:var(--neon-blue,#00e5ff)}
+.notes-status{font-size:9px;color:#8ea5bf;margin-top:8px;min-height:14px}
+
 </style>
 </head>
 <body>
@@ -474,7 +488,7 @@
                     <button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
                     <button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
                     <button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button>
-                    <button class="quick-btn" onclick="showQuickNotice('CROSSOVER')">CROSSOVER</button>
+                    <button class="quick-btn" onclick="showPage('page-notes')">NOTES</button>
                     <button class="quick-btn" onclick="showQuickNotice('DELAY')">DELAY</button>
                     <button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button>
                     <button class="quick-btn" onclick="showQuickNotice('COMPRESSOR')">COMPRESSOR</button>
@@ -924,6 +938,34 @@
             <div class="status-item-monitor">🟢 RMS: <span class="value" id="rms-display">-∞ dB</span></div>
             <div class="status-item-monitor">⏱️ SR: <span class="value">48 kHz</span></div>
             <div class="status-item-monitor">📡 BLE: <span class="value" id="monitor-ble-status">OFF</span></div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ================= HALAMAN: NOTES ================= -->
+<div id="page-notes" class="page">
+    <div class="sub-page-header">
+        <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
+        <div class="sub-page-title">📝 NOTES</div>
+        <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
+    </div>
+    <div class="sub-page-content">
+        <div class="notes-tabs" role="tablist" aria-label="Kategori catatan">
+            <button class="notes-tab active" data-note="midhigh" onclick="switchNoteTab('midhigh')">MID-HIGH</button>
+            <button class="notes-tab" data-note="low" onclick="switchNoteTab('low')">LOW</button>
+            <button class="notes-tab" data-note="sub" onclick="switchNoteTab('sub')">SUB</button>
+            <button class="notes-tab" data-note="general" onclick="switchNoteTab('general')">GENERAL</button>
+        </div>
+        <div class="notes-editor-card">
+            <div class="notes-editor-title" id="notes-editor-title">MID-HIGH NOTES</div>
+            <textarea id="notes-textarea" class="notes-textarea" placeholder="Tulis catatan tuning, frekuensi, gain, crossover, atau konfigurasi di sini..." oninput="updateCurrentNote(this.value)" aria-label="Isi catatan"></textarea>
+            <div class="notes-actions">
+                <button class="notes-action-btn primary" onclick="saveNotesToStorage()">💾 SIMPAN</button>
+                <button class="notes-action-btn" onclick="clearCurrentNote()">BERSIHKAN CATATAN</button>
+                <button class="notes-action-btn" onclick="exportNotes()">EKSPOR TXT</button>
+            </div>
+            <div class="notes-status" id="notes-status" aria-live="polite">Catatan disimpan otomatis di perangkat ini.</div>
         </div>
     </div>
 </div>
@@ -1738,6 +1780,81 @@ function updateRmsDisplay(){const avg=(currentLevels.inL+currentLevels.inR)/2;co
 function toggleScopeFreeze(){scopeFrozen=!scopeFrozen;const btn=document.getElementById('scope-trigger');if(btn){btn.textContent=scopeFrozen?'❄ FROZEN':'▶ AUTO';btn.classList.toggle('frozen',scopeFrozen);}}
 window.addEventListener('resize',()=>{if(monitorActive)resizeScopeCanvas();});
 
+
+// === NOTES PAGE ===
+let currentNoteTab = 'midhigh';
+let notesData = { midhigh: '', low: '', sub: '', general: '' };
+const NOTE_LABELS = { midhigh: 'MID-HIGH', low: 'LOW', sub: 'SUB', general: 'GENERAL' };
+
+function loadNotesFromStorage() {
+    try {
+        const saved = localStorage.getItem('DLMS_NOTES');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                Object.keys(notesData).forEach(key => {
+                    if (typeof parsed[key] === 'string') notesData[key] = parsed[key];
+                });
+            }
+        }
+    } catch (err) {
+        console.warn('Gagal memuat NOTES dari localStorage:', err);
+    }
+}
+function saveNotesToStorage() {
+    const area = document.getElementById('notes-textarea');
+    if (area) notesData[currentNoteTab] = area.value;
+    try {
+        localStorage.setItem('DLMS_NOTES', JSON.stringify(notesData));
+        const status = document.getElementById('notes-status');
+        if (status) status.textContent = '✓ Tersimpan di perangkat ini';
+    } catch (err) {
+        const status = document.getElementById('notes-status');
+        if (status) status.textContent = 'Gagal menyimpan. Periksa ruang penyimpanan browser.';
+    }
+}
+function initNotesPage() {
+    loadNotesFromStorage();
+    switchNoteTab(currentNoteTab);
+}
+function switchNoteTab(tab) {
+    if (!Object.prototype.hasOwnProperty.call(notesData, tab)) return;
+    const area = document.getElementById('notes-textarea');
+    if (area && currentNoteTab) notesData[currentNoteTab] = area.value;
+    currentNoteTab = tab;
+    document.querySelectorAll('.notes-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.note === tab);
+    });
+    const title = document.getElementById('notes-editor-title');
+    if (title) title.textContent = (NOTE_LABELS[tab] || tab.toUpperCase()) + ' NOTES';
+    if (area) area.value = notesData[tab] || '';
+    const status = document.getElementById('notes-status');
+    if (status) status.textContent = 'Catatan disimpan otomatis di perangkat ini.';
+}
+function updateCurrentNote(value) {
+    notesData[currentNoteTab] = value;
+    saveNotesToStorage();
+}
+function clearCurrentNote() {
+    if (!confirm('Hapus semua catatan pada kategori ' + (NOTE_LABELS[currentNoteTab] || currentNoteTab) + '?')) return;
+    notesData[currentNoteTab] = '';
+    const area = document.getElementById('notes-textarea');
+    if (area) area.value = '';
+    saveNotesToStorage();
+}
+function exportNotes() {
+    const textContent = Object.keys(notesData).map(key => '=== ' + NOTE_LABELS[key] + ' ===\n' + (notesData[key] || '')).join('\n\n');
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'DLMS-notes.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
 function showPage(pageId) {
             const page = document.getElementById(pageId);
             if (!page) return;
@@ -1752,6 +1869,7 @@ function showPage(pageId) {
             if (pageId === 'page-system') refreshSystemPage();
             if (pageId !== 'page-monitor' && monitorActive) stopMonitor();
             if (pageId === 'page-monitor') setTimeout(initMonitor, 100);
+            if (pageId === 'page-notes') initNotesPage();
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
