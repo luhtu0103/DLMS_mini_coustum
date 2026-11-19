@@ -461,12 +461,15 @@
 .sub-page-content {
     flex: 1;
     padding: 10px;
-    overflow-y: hidden;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-height: 0;
+    -webkit-overflow-scrolling: touch;
 }
+.sub-page-content::-webkit-scrollbar { width: 3px; }
+.sub-page-content::-webkit-scrollbar-thumb { background: var(--neon-blue); }
 .sub-page-header { display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid var(--panel-bg); padding-bottom:6px; margin-bottom:8px; flex-shrink:0; }
 .sub-page-title { font-size:12px; font-weight:bold; letter-spacing:1px; color:var(--neon-blue); text-align:center; flex:1; }
 .sub-page-header .guide-header-btn { flex-shrink:0; }
