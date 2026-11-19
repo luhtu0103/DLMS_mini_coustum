@@ -317,7 +317,27 @@
 .mixer-container::-webkit-scrollbar-thumb { background:var(--neon-blue); border-radius:2px; }
 @media (max-width:480px) { .mixer-container { justify-content:flex-start; gap:6px; padding:8px 4px; } .channel-strip { min-width:76px; padding:7px 4px; } .fader-meter-area { height:clamp(100px,24vh,160px); } .channel-header { font-size:10px; padding:4px 3px; } }
 
-    </style>
+    
+/* === QUICK SCENES (EFFECTS PAGE) === */
+.scenes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.scene-card{background:linear-gradient(180deg,#0d1627 0%,#050a14 100%);border:1px solid #1a2a40;border-radius:8px;padding:14px;cursor:pointer;transition:all .2s ease;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;overflow:hidden;min-width:0}
+.scene-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--scene-color,var(--neon-blue));opacity:.6;transition:opacity .2s}
+.scene-card:active{transform:scale(.96)}
+.scene-card.active{border-color:var(--scene-color,var(--neon-green));box-shadow:0 0 15px var(--scene-glow,rgba(0,255,136,.3))}
+.scene-card.active::before{opacity:1}
+.scene-icon{font-size:28px;margin-bottom:2px}
+.scene-name{font-size:11px;font-weight:bold;color:#fff;letter-spacing:1px;text-transform:uppercase;text-align:center}
+.scene-desc{font-size:8px;color:var(--text-dim);text-align:center;line-height:1.3}
+.section-divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:var(--text-dim);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:#1a2a40}
+.preset-large-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
+.preset-large-btn{padding:18px 0;font-size:14px;font-weight:bold;border-radius:8px;border:2px solid #1a2a40;background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);cursor:pointer;transition:all .2s;letter-spacing:1px;min-width:0}
+.preset-large-btn:active{transform:scale(.95)}
+.preset-large-btn.active{border-color:var(--neon-blue);color:var(--neon-blue);box-shadow:0 0 15px rgba(0,229,255,.4);background:linear-gradient(180deg,#0a1a27,#050a14)}
+#bypass-all-btn{width:100%;margin-bottom:12px}
+#bypass-all-btn.active{border-color:var(--neon-red);color:var(--neon-red);box-shadow:0 0 12px rgba(255,0,51,.3)}
+@media(max-width:420px){.scene-card{padding:11px 8px}.scene-icon{font-size:24px}.preset-large-btn{padding:14px 0}}
+</style>
 </head>
 <body>
 
@@ -680,23 +700,36 @@
 </div>
 
 <div id="page-presets" class="page">
-    <div class="setting-header">
+    <div class="sub-page-header">
         <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
-        <div class="title" style="font-size: 12px;">EFFECT PRESETS</div>
-        <div style="width: 80px;"></div>
+        <div class="sub-page-title">EFFECT PRESETS</div>
+        <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
     </div>
-    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
-        <div class="control-card">
-            <div class="card-title" style="color: var(--neon-yellow);">SOUND PRESETS</div>
-            <div class="preset-grid-four">
-                <button class="preset-btn active" id="btn-p1" onclick="handlePresetClick(1)">P1</button>
-                <button class="preset-btn" id="btn-p2" onclick="handlePresetClick(2)">P2</button>
-                <button class="preset-btn" id="btn-p3" onclick="handlePresetClick(3)">P3</button>
-                <button class="preset-btn" id="btn-p4" onclick="handlePresetClick(4)">P4</button>
+    <div class="sub-page-content" style="overflow-y:auto;min-height:0;">
+        <div class="feature-card">
+            <div class="feature-card-title">🎨 QUICK SCENES</div>
+            <div class="scenes-grid">
+                <div class="scene-card" data-scene="flat" onclick="applyScene('flat')" style="--scene-color:var(--neon-blue);--scene-glow:rgba(0,229,255,.4)"><div class="scene-icon">🎯</div><div class="scene-name">FLAT</div><div class="scene-desc">Suara netral tanpa warna</div></div>
+                <div class="scene-card" data-scene="bass" onclick="applyScene('bass')" style="--scene-color:var(--neon-red);--scene-glow:rgba(255,0,51,.4)"><div class="scene-icon">🔊</div><div class="scene-name">BASS BOOST</div><div class="scene-desc">Bass lebih nendang &amp; dalam</div></div>
+                <div class="scene-card" data-scene="vocal" onclick="applyScene('vocal')" style="--scene-color:var(--neon-yellow);--scene-glow:rgba(255,170,0,.4)"><div class="scene-icon">🎤</div><div class="scene-name">VOCAL</div><div class="scene-desc">Vokal jelas &amp; di depan</div></div>
+                <div class="scene-card" data-scene="rock" onclick="applyScene('rock')" style="--scene-color:#ff4444;--scene-glow:rgba(255,68,68,.4)"><div class="scene-icon">🎸</div><div class="scene-name">ROCK</div><div class="scene-desc">Gitar &amp; drum punchy</div></div>
+                <div class="scene-card" data-scene="electronic" onclick="applyScene('electronic')" style="--scene-color:#aa00ff;--scene-glow:rgba(170,0,255,.4)"><div class="scene-icon">🎧</div><div class="scene-name">ELECTRONIC</div><div class="scene-desc">EDM, House, Techno</div></div>
+                <div class="scene-card" data-scene="acoustic" onclick="applyScene('acoustic')" style="--scene-color:var(--neon-green);--scene-glow:rgba(0,255,136,.4)"><div class="scene-icon">🎻</div><div class="scene-name">ACOUSTIC</div><div class="scene-desc">Jazz, akustik, natural</div></div>
             </div>
-            <div class="preset-help">Pilih P1–P4 untuk memuat preset. Gunakan tombol SAVE di halaman pengaturan untuk menyimpan preset.</div>
-            <button class="preset-btn bypass preset-wide" id="quick-bypass-btn" onclick="toggleBypass(this)">BYPASS ALL EFFECTS</button>
         </div>
+        <div class="section-divider">USER PRESETS</div>
+        <div class="feature-card">
+            <div class="feature-card-title">💾 SAVED PRESETS</div>
+            <div class="preset-large-grid">
+                <button class="preset-large-btn" id="btn-p1" onclick="loadPreset(1)">P1</button>
+                <button class="preset-large-btn" id="btn-p2" onclick="loadPreset(2)">P2</button>
+                <button class="preset-large-btn" id="btn-p3" onclick="loadPreset(3)">P3</button>
+                <button class="preset-large-btn" id="btn-p4" onclick="loadPreset(4)">P4</button>
+            </div>
+            <div style="font-size:9px;color:var(--text-dim);margin-top:10px;text-align:center;line-height:1.4">Tekan tombol <b style="color:var(--neon-green)">SAVE</b> di dashboard, lalu pilih P1–P4 untuk menyimpan.<br>Klik tombol di atas untuk memuat preset.</div>
+        </div>
+        <div class="section-divider">BYPASS</div>
+        <button class="big-toggle-btn" id="bypass-all-btn" onclick="toggleAllBypass()">⚡ BYPASS ALL EFFECTS</button>
     </div>
 </div>
 
@@ -1427,6 +1460,7 @@
             rtaPageActive = (pageId === 'page-rta');
             if (pageId === 'page-front') syncDashboardUI();
             if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
+            if (pageId === 'page-presets') refreshEffectsPage();
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
@@ -1602,6 +1636,82 @@ function updateStripMeter(chId,level) {
     });
 }
 
+
+// === QUICK SCENES DATA ===
+const SCENE_PRESETS = {
+ flat:{name:'FLAT',outs:{1:{p1g:0,p2g:0,p3g:0,gain:0},2:{p1g:0,p2g:0,p3g:0,gain:0},3:{p1g:0,p2g:0,p3g:0,gain:0},4:{p1g:0,p2g:0,p3g:0,gain:0}}},
+ bass:{name:'BASS BOOST',outs:{1:{p1g:3,p2g:0,p3g:0,gain:0},2:{p1g:3,p2g:0,p3g:0,gain:0},3:{p1g:5,p2g:0,p3g:0,gain:2},4:{p1g:6,p2g:0,p3g:0,gain:3}}},
+ vocal:{name:'VOCAL',outs:{1:{p1g:-2,p2g:4,p3g:2,gain:1},2:{p1g:-2,p2g:4,p3g:2,gain:1},3:{p1g:0,p2g:2,p3g:0,gain:0},4:{p1g:-3,p2g:0,p3g:0,gain:-2}}},
+ rock:{name:'ROCK',outs:{1:{p1g:2,p2g:-1,p3g:3,gain:1},2:{p1g:2,p2g:-1,p3g:3,gain:1},3:{p1g:4,p2g:0,p3g:2,gain:2},4:{p1g:5,p2g:0,p3g:0,gain:2}}},
+ electronic:{name:'ELECTRONIC',outs:{1:{p1g:-3,p2g:0,p3g:4,gain:0},2:{p1g:-3,p2g:0,p3g:4,gain:0},3:{p1g:3,p2g:-2,p3g:0,gain:1},4:{p1g:6,p2g:0,p3g:-3,gain:3}}},
+ acoustic:{name:'ACOUSTIC',outs:{1:{p1g:-1,p2g:2,p3g:1,gain:0},2:{p1g:-1,p2g:2,p3g:1,gain:0},3:{p1g:0,p2g:1,p3g:0,gain:0},4:{p1g:-2,p2g:0,p3g:0,gain:-1}}}
+};
+let activeScene = null;
+let activeUserPreset = null;
+let allEffectsBypassed = false;
+
+function applyScene(sceneName) {
+ const scene=SCENE_PRESETS[sceneName];
+ if(!scene)return;
+ for(let i=1;i<=4;i++){
+  const st=scene.outs[i]; if(!st||!globalState[i])continue;
+  for(const [key,param] of [['p1g','PEQ1GAIN'],['p2g','PEQ2GAIN'],['p3g','PEQ3GAIN'],['gain','GAIN']]){
+   if(st[key]!==undefined){globalState[i][key]=st[key];sendBLEData('OUT'+i+'_'+param+','+st[key]);}
+  }
+ }
+ activeScene=sceneName; activeUserPreset=null;
+ document.querySelectorAll('.scene-card').forEach(c=>c.classList.toggle('active',c.dataset.scene===sceneName));
+ document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.remove('active'));
+ syncDashboardUI();
+ if(typeof buildMixer==='function')buildMixer();
+ showToast('🎨 Scene "'+scene.name+'" diterapkan');
+}
+
+function loadPreset(num) {
+ if(!Number.isInteger(num)||num<1||num>4)return;
+ // Gunakan loader bawaan agar migrasi field dan pengiriman BLE tetap konsisten.
+ handlePresetClick(num);
+ const saved=localStorage.getItem('DLMS_PRESET_'+num);
+ if(!saved)return;
+ try {
+  const parsed=JSON.parse(saved);
+  if(parsed.outs&&parsed.ins){
+   activeUserPreset=num; activeScene=null;
+   document.querySelectorAll('.scene-card').forEach(c=>c.classList.remove('active'));
+   document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='btn-p'+num));
+   if(typeof buildMixer==='function')buildMixer();
+  }
+ } catch(e) { /* handlePresetClick menampilkan pesan jika data tidak valid */ }
+}
+
+function toggleAllBypass() {
+ allEffectsBypassed=!allEffectsBypassed;
+ const btn=document.getElementById('bypass-all-btn');
+ if(btn){btn.classList.toggle('active',allEffectsBypassed);btn.innerText=allEffectsBypassed?'⚡ BYPASS AKTIF - TAP UNTUK NORMAL':'⚡ BYPASS ALL EFFECTS';}
+ // Samakan tombol bypass lama jika masih ada di bagian UI lain.
+ document.querySelectorAll('.preset-btn.bypass').forEach(b=>{b.classList.toggle('active',allEffectsBypassed);});
+ sendBLEData('ALL_BYPASS,'+(allEffectsBypassed?1:0));
+ showToast(allEffectsBypassed?'⚡ Bypass aktif':'🔊 Mode normal');
+}
+
+function refreshEffectsPage() {
+ document.querySelectorAll('.scene-card').forEach(c=>c.classList.toggle('active',c.dataset.scene===activeScene));
+ document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='btn-p'+activeUserPreset));
+ const btn=document.getElementById('bypass-all-btn');
+ if(btn){btn.classList.toggle('active',allEffectsBypassed);btn.innerText=allEffectsBypassed?'⚡ BYPASS AKTIF - TAP UNTUK NORMAL':'⚡ BYPASS ALL EFFECTS';}
+}
+
+function showToast(msg) {
+ let toast=document.getElementById('toast-msg');
+ if(!toast){
+  toast=document.createElement('div');toast.id='toast-msg';
+  toast.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--panel-bg);color:var(--neon-green);border:1px solid var(--neon-green);padding:10px 20px;border-radius:20px;font-size:11px;font-weight:bold;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.5);opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center;';
+  document.body.appendChild(toast);
+ }
+ toast.innerText=msg;toast.style.opacity='1';
+ clearTimeout(window._toastTimer);
+ window._toastTimer=setTimeout(()=>{toast.style.opacity='0';},2000);
+}
 
         window.onload = () => {
             loadStateToUI(1);
