@@ -318,37 +318,159 @@
 @media (max-width:480px) { .mixer-container { justify-content:flex-start; gap:6px; padding:8px 4px; } .channel-strip { min-width:76px; padding:7px 4px; } .fader-meter-area { height:clamp(100px,24vh,160px); } .channel-header { font-size:10px; padding:4px 3px; } }
 
     
-/* === QUICK SCENES (EFFECTS PAGE) === */
-.scenes-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
-.scene-card{background:linear-gradient(180deg,#0d1627 0%,#050a14 100%);border:1px solid #1a2a40;border-radius:8px;padding:14px;cursor:pointer;transition:all .2s ease;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;overflow:hidden;min-width:0}
-.scene-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--scene-color,var(--neon-blue));opacity:.6;transition:opacity .2s}
-.scene-card:active{transform:scale(.96)}
-.scene-card.active{border-color:var(--scene-color,var(--neon-green));box-shadow:0 0 15px var(--scene-glow,rgba(0,255,136,.3))}
-.scene-card.active::before{opacity:1}
-.scene-icon{font-size:28px;margin-bottom:2px}
-.scene-name{font-size:11px;font-weight:bold;color:#fff;letter-spacing:1px;text-transform:uppercase;text-align:center}
-.scene-desc{font-size:8px;color:var(--text-dim);text-align:center;line-height:1.3}
-.section-divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:var(--text-dim);font-size:9px;letter-spacing:1px;text-transform:uppercase}
-.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:#1a2a40}
-.preset-large-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}
-.preset-large-btn{padding:18px 0;font-size:14px;font-weight:bold;border-radius:8px;border:2px solid #1a2a40;background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);cursor:pointer;transition:all .2s;letter-spacing:1px;min-width:0}
-.preset-large-btn:active{transform:scale(.95)}
-.preset-large-btn.active{border-color:var(--neon-blue);color:var(--neon-blue);box-shadow:0 0 15px rgba(0,229,255,.4);background:linear-gradient(180deg,#0a1a27,#050a14)}
-#bypass-all-btn{width:100%;margin-bottom:12px}
-#bypass-all-btn.active{border-color:var(--neon-red);color:var(--neon-red);box-shadow:0 0 12px rgba(255,0,51,.3)}
-@media(max-width:420px){.scene-card{padding:11px 8px}.scene-icon{font-size:24px}.preset-large-btn{padding:14px 0}}
+/* === QUICK SCENES COMPACT === */
+.scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+.scene-card {
+    background: linear-gradient(180deg, #0d1627 0%, #050a14 100%);
+    border: 1px solid #1a2a40;
+    border-radius: 6px;
+    padding: 8px 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+}
+.scene-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--scene-color, var(--neon-blue));
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.scene-card:active { transform: scale(0.96); }
+.scene-card.active {
+    border-color: var(--scene-color, var(--neon-green));
+    box-shadow: 0 0 10px var(--scene-glow, rgba(0,255,136,0.3));
+}
+.scene-card.active::before { opacity: 1; }
+.scene-icon { font-size: 20px; margin-bottom: 1px; }
+.scene-name {
+    font-size: 9px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    text-align: center;
+}
+.scene-desc {
+    font-size: 7px;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.2;
+}
+/* Section Divider Compact */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 6px 0;
+    color: var(--text-dim);
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #1a2a40;
+}
+/* Preset Large Grid Compact */
+.preset-large-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+}
+.preset-large-btn {
+    padding: 12px 0;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 6px;
+    border: 1px solid #1a2a40;
+    background: linear-gradient(180deg, #0d1627, #050a14);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+}
+.preset-large-btn:active { transform: scale(0.95); }
+.preset-large-btn.active {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0,229,255,0.4);
+    background: linear-gradient(180deg, #0a1a27, #050a14);
+}
+/* Big Toggle Button Compact */
+.big-toggle-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    border: 1px solid #1a2a40;
+    background: linear-gradient(180deg, #0d1627, #050a14);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+}
+.big-toggle-btn:active { transform: scale(0.98); }
+.big-toggle-btn.mute-active, #bypass-all-btn.active {
+    background: linear-gradient(180deg, #3a0a14, #1a0508);
+    border-color: var(--neon-red);
+    color: var(--neon-red);
+    box-shadow: 0 0 15px rgba(255,0,51,0.4);
+}
+/* Feature Card Compact */
+.feature-card {
+    background: linear-gradient(180deg, #0d1627 0%, #050a14 100%);
+    border: 1px solid #1a2a40;
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    margin-bottom: 6px;
+    min-width: 0;
+}
+.feature-card-title {
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--neon-blue);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #1a2a40;
+    padding-bottom: 4px;
+}
+/* Sub Page Content - Compact */
+.sub-page-content {
+    flex: 1;
+    padding: 10px;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+}
+.sub-page-header { display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid var(--panel-bg); padding-bottom:6px; margin-bottom:8px; flex-shrink:0; }
+.sub-page-title { font-size:12px; font-weight:bold; letter-spacing:1px; color:var(--neon-blue); text-align:center; flex:1; }
+.sub-page-header .guide-header-btn { flex-shrink:0; }
 
-/* Layout helpers for the effects page */
-.sub-page-header{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--panel-bg);padding-bottom:6px;margin-bottom:8px;flex-shrink:0}
-.sub-page-title{font-size:12px;font-weight:bold;letter-spacing:1px;color:var(--neon-blue);text-align:center;flex:1}
-.sub-page-header .guide-header-btn{flex-shrink:0}
-.sub-page-content{display:flex;flex-direction:column;flex:1;gap:4px;min-height:0;padding:2px 4px 10px;overflow-y:auto}
-.sub-page-content::-webkit-scrollbar{width:3px}
-.sub-page-content::-webkit-scrollbar-thumb{background:var(--neon-blue)}
-.feature-card{background:var(--panel-bg);border:1px solid #1a2a40;border-radius:8px;padding:10px;display:flex;flex-direction:column;flex-shrink:0}
-.feature-card-title{font-size:10px;font-weight:bold;letter-spacing:.7px;color:var(--neon-yellow);margin-bottom:4px}
-.big-toggle-btn{background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);border:1px solid #1a2a40;border-radius:8px;padding:14px 10px;font-size:11px;font-weight:bold;letter-spacing:.6px;cursor:pointer;transition:all .2s}
-.big-toggle-btn:active{transform:scale(.98)}
 </style>
 </head>
 <body>
@@ -717,31 +839,50 @@
         <div class="sub-page-title">EFFECT PRESETS</div>
         <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
     </div>
-    <div class="sub-page-content" style="overflow-y:auto;min-height:0;">
+
+    <div class="sub-page-content">
+        <!-- QUICK SCENES: 3 columns x 2 rows -->
         <div class="feature-card">
             <div class="feature-card-title">🎨 QUICK SCENES</div>
             <div class="scenes-grid">
-                <div class="scene-card" data-scene="flat" onclick="applyScene('flat')" style="--scene-color:var(--neon-blue);--scene-glow:rgba(0,229,255,.4)"><div class="scene-icon">🎯</div><div class="scene-name">FLAT</div><div class="scene-desc">Suara netral tanpa warna</div></div>
-                <div class="scene-card" data-scene="bass" onclick="applyScene('bass')" style="--scene-color:var(--neon-red);--scene-glow:rgba(255,0,51,.4)"><div class="scene-icon">🔊</div><div class="scene-name">BASS BOOST</div><div class="scene-desc">Bass lebih nendang &amp; dalam</div></div>
-                <div class="scene-card" data-scene="vocal" onclick="applyScene('vocal')" style="--scene-color:var(--neon-yellow);--scene-glow:rgba(255,170,0,.4)"><div class="scene-icon">🎤</div><div class="scene-name">VOCAL</div><div class="scene-desc">Vokal jelas &amp; di depan</div></div>
-                <div class="scene-card" data-scene="rock" onclick="applyScene('rock')" style="--scene-color:#ff4444;--scene-glow:rgba(255,68,68,.4)"><div class="scene-icon">🎸</div><div class="scene-name">ROCK</div><div class="scene-desc">Gitar &amp; drum punchy</div></div>
-                <div class="scene-card" data-scene="electronic" onclick="applyScene('electronic')" style="--scene-color:#aa00ff;--scene-glow:rgba(170,0,255,.4)"><div class="scene-icon">🎧</div><div class="scene-name">ELECTRONIC</div><div class="scene-desc">EDM, House, Techno</div></div>
-                <div class="scene-card" data-scene="acoustic" onclick="applyScene('acoustic')" style="--scene-color:var(--neon-green);--scene-glow:rgba(0,255,136,.4)"><div class="scene-icon">🎻</div><div class="scene-name">ACOUSTIC</div><div class="scene-desc">Jazz, akustik, natural</div></div>
+                <div class="scene-card" data-scene="flat" onclick="applyScene('flat')" style="--scene-color: var(--neon-blue); --scene-glow: rgba(0,229,255,0.4);">
+                    <div class="scene-icon">🎯</div><div class="scene-name">FLAT</div><div class="scene-desc">Netral</div>
+                </div>
+                <div class="scene-card" data-scene="bass" onclick="applyScene('bass')" style="--scene-color: var(--neon-red); --scene-glow: rgba(255,0,51,0.4);">
+                    <div class="scene-icon">🔊</div><div class="scene-name">BASS</div><div class="scene-desc">Nendang</div>
+                </div>
+                <div class="scene-card" data-scene="vocal" onclick="applyScene('vocal')" style="--scene-color: var(--neon-yellow); --scene-glow: rgba(255,170,0,0.4);">
+                    <div class="scene-icon">🎤</div><div class="scene-name">VOCAL</div><div class="scene-desc">Jelas</div>
+                </div>
+                <div class="scene-card" data-scene="rock" onclick="applyScene('rock')" style="--scene-color: #ff4444; --scene-glow: rgba(255,68,68,0.4);">
+                    <div class="scene-icon">🎸</div><div class="scene-name">ROCK</div><div class="scene-desc">Punchy</div>
+                </div>
+                <div class="scene-card" data-scene="electronic" onclick="applyScene('electronic')" style="--scene-color: #aa00ff; --scene-glow: rgba(170,0,255,0.4);">
+                    <div class="scene-icon">🎧</div><div class="scene-name">EDM</div><div class="scene-desc">Electronic</div>
+                </div>
+                <div class="scene-card" data-scene="acoustic" onclick="applyScene('acoustic')" style="--scene-color: var(--neon-green); --scene-glow: rgba(0,255,136,0.4);">
+                    <div class="scene-icon">🎻</div><div class="scene-name">JAZZ</div><div class="scene-desc">Natural</div>
+                </div>
             </div>
         </div>
+
         <div class="section-divider">USER PRESETS</div>
         <div class="feature-card">
-            <div class="feature-card-title">💾 SAVED PRESETS</div>
+            <div class="feature-card-title">💾 SAVED</div>
             <div class="preset-large-grid">
                 <button class="preset-large-btn" id="btn-p1" onclick="loadPreset(1)">P1</button>
                 <button class="preset-large-btn" id="btn-p2" onclick="loadPreset(2)">P2</button>
                 <button class="preset-large-btn" id="btn-p3" onclick="loadPreset(3)">P3</button>
                 <button class="preset-large-btn" id="btn-p4" onclick="loadPreset(4)">P4</button>
             </div>
-            <div style="font-size:9px;color:var(--text-dim);margin-top:10px;text-align:center;line-height:1.4">Tekan tombol <b style="color:var(--neon-green)">SAVE</b> di dashboard, lalu pilih P1–P4 untuk menyimpan.<br>Klik tombol di atas untuk memuat preset.</div>
+            <div style="font-size: 8px; color: var(--text-dim); margin-top: 6px; text-align: center;">
+                Tekan <b style="color: var(--neon-green);">SAVE</b> di dashboard → pilih P1-P4
+            </div>
         </div>
-        <div class="section-divider">BYPASS</div>
-        <button class="big-toggle-btn" id="bypass-all-btn" onclick="toggleAllBypass()">⚡ BYPASS ALL EFFECTS</button>
+
+        <button class="big-toggle-btn" id="bypass-all-btn" onclick="toggleAllBypass()">
+            ⚡ BYPASS ALL EFFECTS
+        </button>
     </div>
 </div>
 
