@@ -484,15 +484,20 @@
 
                 <!-- GRID 3x3 MENU -->
                 <div class="quick-grid">
+                    <!-- Baris 1: Fitur Audio Utama -->
                     <button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button>
                     <button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
                     <button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
+                    
+                    <!-- Baris 2: Monitoring & Sistem -->
                     <button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button>
                     <button class="quick-btn" onclick="showPage('page-notes')">NOTES</button>
-                    <button class="quick-btn" onclick="showQuickNotice('DELAY')">DELAY</button>
                     <button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button>
-                    <button class="quick-btn" onclick="showQuickNotice('COMPRESSOR')">COMPRESSOR</button>
-                    <button class="quick-btn" onclick="showQuickNotice('INPUT')">INPUT</button>
+                    
+                    <!-- Baris 3: Coming Soon (Kosong) -->
+                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
+                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
+                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
                 </div>
             </div>
 
