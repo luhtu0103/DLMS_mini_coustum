@@ -377,6 +377,19 @@
 .tone-info-box{background:#03060a;border:1px solid #1a2a40;border-radius:6px;padding:10px;margin-top:4px;font-size:9px;color:var(--text-dim);line-height:1.5}
 .tone-info-box b{color:var(--neon-blue)}
 #page-test-tone .sub-page-content{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* === SYSTEM PAGE MODERN === */
+.sys-section{margin-bottom:8px}.sys-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+.sys-btn-modern{padding:12px 8px;font-size:10px;font-weight:bold;border-radius:6px;border:1px solid #1a2a40;background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);cursor:pointer;transition:all .15s;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;gap:4px;text-transform:uppercase}
+.sys-btn-modern:active{transform:scale(.95);box-shadow:0 0 12px var(--sys-glow,transparent)}.sys-btn-modern .sys-icon{font-size:18px}
+.sys-btn-modern.save{--sys-color:var(--neon-blue);--sys-glow:rgba(0,229,255,.4)}.sys-btn-modern.load{--sys-color:var(--neon-green);--sys-glow:rgba(0,255,136,.4)}.sys-btn-modern.backup{--sys-color:var(--neon-yellow);--sys-glow:rgba(255,170,0,.4)}.sys-btn-modern.restore{--sys-color:#00e5ff;--sys-glow:rgba(0,229,255,.4)}.sys-btn-modern.rename{--sys-color:var(--neon-blue);--sys-glow:rgba(0,229,255,.4)}.sys-btn-modern.reset{--sys-color:var(--neon-red);--sys-glow:rgba(255,0,51,.4)}
+.sys-btn-modern:hover{border-color:var(--sys-color,#1a2a40);color:var(--sys-color,#fff)}
+.sys-info-box{background:linear-gradient(180deg,#0d1627,#050a14);border:1px solid #1a2a40;border-radius:6px;padding:10px;margin-top:6px}
+.sys-info-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #1a2a40;font-size:10px}.sys-info-row:last-child{border-bottom:none}
+.sys-info-label{color:var(--text-dim);font-weight:bold;letter-spacing:.5px}.sys-info-value{color:#fff;font-family:monospace;font-weight:bold;text-align:right}.sys-info-value.connected{color:var(--neon-green)}.sys-info-value.disconnected{color:var(--neon-red)}
+.sys-section-title{font-size:9px;font-weight:bold;color:var(--neon-blue);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase;display:flex;align-items:center;gap:6px}.sys-section-title::before{content:'';width:3px;height:12px;background:var(--neon-blue);border-radius:2px}
+#page-system .sub-page-content{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
 </style>
 </head>
 <body>
@@ -817,6 +830,31 @@
         <div class="tone-info-box"><b>💡 CARA PAKAI:</b><br>• <b>PINK NOISE</b> → Untuk RTA & tuning speaker<br>• <b>SINE WAVE</b> → Untuk test phase & delay<br>• Geser <b>VOLUME</b> untuk mengatur level output<br>• Buka halaman <b>RTA</b> untuk melihat analisis frekuensi</div>
     </div>
 </div>
+
+
+<!-- ================= HALAMAN: SYSTEM ================= -->
+<div id="page-system" class="page">
+<div class="sub-page-header"><button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button><div class="sub-page-title">SYSTEM</div><button class="guide-header-btn" onclick="showPage('page-guide')">?</button></div>
+<div class="sub-page-content">
+<div class="sys-section"><div class="sys-section-title">💾 STORAGE</div><div class="sys-grid">
+<button class="sys-btn-modern save" onclick="saveToNVS()"><span class="sys-icon">💾</span><span>SAVE TO ESP32</span></button>
+<button class="sys-btn-modern load" onclick="loadFromNVS()"><span class="sys-icon">📂</span><span>LOAD FROM ESP32</span></button>
+<button class="sys-btn-modern backup" onclick="saveBackupLocal()"><span class="sys-icon">📱</span><span>BACKUP TO HP</span></button>
+<button class="sys-btn-modern restore" onclick="restoreBackupLocal()"><span class="sys-icon">🔄</span><span>RESTORE FROM HP</span></button>
+</div></div>
+<div class="sys-section"><div class="sys-section-title">⚙️ DEVICE</div><div class="sys-grid">
+<button class="sys-btn-modern rename" onclick="renameDevice()"><span class="sys-icon">✏️</span><span>RENAME DEVICE</span></button>
+<button class="sys-btn-modern reset" onclick="resetFactory()"><span class="sys-icon">⚠️</span><span>FACTORY RESET</span></button>
+</div></div>
+<div class="sys-section"><div class="sys-section-title">ℹ️ INFO</div><div class="sys-info-box">
+<div class="sys-info-row"><span class="sys-info-label">📱 APP</span><span class="sys-info-value">DLMS CUSTOM</span></div>
+<div class="sys-info-row"><span class="sys-info-label">🔌 FIRMWARE</span><span class="sys-info-value" id="sys-fw-ver">Tidak terdeteksi</span></div>
+<div class="sys-info-row"><span class="sys-info-label">📡 BLE</span><span class="sys-info-value disconnected" id="sys-ble-status">DISCONNECTED</span></div>
+<div class="sys-info-row"><span class="sys-info-label">🎛️ MODE</span><span class="sys-info-value">BI-AMP 4-CH</span></div>
+<div class="sys-info-row"><span class="sys-info-label">🎵 SAMPLE RATE</span><span class="sys-info-value">48 kHz*</span></div>
+<div class="sys-info-row"><span class="sys-info-label">📦 PRESETS</span><span class="sys-info-value" id="sys-preset-count">0/4 saved</span></div>
+</div><div style="font-size:8px;color:var(--text-dim);margin-top:4px">*Sample rate belum dibaca langsung dari firmware.</div></div>
+</div></div>
 
 <!-- ================= HALAMAN 4: PANDUAN ================= -->
     <div id="page-guide" class="page">
@@ -1555,6 +1593,17 @@ function initTestTonePage(){
 }
 function showQuickNotice(name){alert(name+' belum tersedia.')}
 
+
+function isSystemBLEConnected(){return !!(bleCharacteristic&&bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected);}
+function saveToNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('SAVE_TO_NVS,1');showToast('Permintaan simpan dikirim; perlu dukungan firmware.');}
+function loadFromNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('LOAD_FROM_NVS,1');showToast('Permintaan muat dikirim; perlu dukungan firmware.');}
+function saveBackupLocal(){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');const b={version:'1.0',timestamp:new Date().toISOString(),outs:globalState,ins:inputState,master:m?Number(m.value):0,deviceName:document.getElementById('dash-title').innerText};try{localStorage.setItem('DLMS_BACKUP_FULL',JSON.stringify(b));showToast('📱 Backup tersimpan di HP!');updateSystemInfo();}catch(e){showToast('❌ Gagal menyimpan backup!');}}
+function restoreBackupLocal(){const raw=localStorage.getItem('DLMS_BACKUP_FULL');if(!raw){showToast('⚠️ Tidak ada backup!');return;}if(!confirm('Restore backup? Settingan saat ini akan ditimpa!'))return;try{const b=JSON.parse(raw);if(b.outs){for(let i=1;i<=4;i++)if(!b.outs[i])throw Error('Data output tidak lengkap');globalState=b.outs;for(let i=1;i<=4;i++)sendOutputStateToDevice(i,globalState[i]);}if(b.ins){if(!b.ins.L||!b.ins.R)throw Error('Data input tidak lengkap');inputState=b.ins;sendInputStateToDevice('L',inputState.L);sendInputStateToDevice('R',inputState.R);}if(b.master!==undefined){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');if(m){m.value=b.master;m.dispatchEvent(new Event('input',{bubbles:true}));}}if(b.deviceName){document.getElementById('dash-title').innerText=b.deviceName;localStorage.setItem('DLMS_DEVICE_NAME',b.deviceName);}syncDashboardUI();showToast('🔄 Backup direstore!');}catch(e){showToast('❌ Backup tidak valid!');}}
+function renameDevice(){const el=document.getElementById('dash-title'),old=el.innerText,n=prompt('Nama perangkat baru:',old);if(n===null||!n.trim())return;const name=n.trim().substring(0,20);el.innerText=name;localStorage.setItem('DLMS_DEVICE_NAME',name);showToast('✅ Nama diubah: '+name);}
+function resetFactory(){if(!confirm('Reset semua parameter output, input, dan master ke nilai default?'))return;if(!confirm('Yakin? Tindakan ini tidak dapat dibatalkan.'))return;for(let i=1;i<=4;i++){globalState[i]={hpfOn:false,hpfFreq:20,hpfSlope:24,lpfOn:false,lpfFreq:20000,lpfSlope:24,p1f:100,p1g:0,p2f:1000,p2g:0,p3f:5000,p3g:0,gain:0,delay:0,limitOn:false,limit:0,routing:2,isMute:false,phase180:false,compOn:false,compThresh:-20,compRatio:4,compAtk:10,compRel:200};sendOutputStateToDevice(i,globalState[i]);}inputState.L={gain:0,peqFreq:1000,peqGain:0};inputState.R={gain:0,peqFreq:1000,peqGain:0};sendInputStateToDevice('L',inputState.L);sendInputStateToDevice('R',inputState.R);const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');if(m){m.value=0;m.dispatchEvent(new Event('input',{bubbles:true}));}syncDashboardUI();updateSystemInfo();showToast('Reset parameter selesai; NVS firmware tidak dihapus.');}
+function updateSystemInfo(){const c=isSystemBLEConnected(),e=document.getElementById('sys-ble-status');if(e){e.innerText=c?'CONNECTED':'DISCONNECTED';e.className='sys-info-value '+(c?'connected':'disconnected');}let n=0;for(let i=1;i<=4;i++)if(localStorage.getItem('DLMS_PRESET_'+i))n++;const p=document.getElementById('sys-preset-count');if(p)p.innerText=n+'/4 saved';}
+function refreshSystemPage(){updateSystemInfo();}
+
 function showPage(pageId) {
             const page = document.getElementById(pageId);
             if (!page) return;
@@ -1566,6 +1615,7 @@ function showPage(pageId) {
             if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
             if (pageId === 'page-presets') refreshEffectsPage();
             if (pageId === 'page-test-tone') initTestTonePage();
+            if (pageId === 'page-system') refreshSystemPage();
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
