@@ -344,6 +344,39 @@
 .sub-page-title{font-size:12px;font-weight:bold;letter-spacing:1px;color:var(--neon-blue);text-align:center;flex:1}
 .sub-page-header .guide-header-btn{flex-shrink:0}
 
+
+/* === TEST TONE PAGE MODERN === */
+.tone-mode-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.tone-mode-btn{padding:16px 0;font-size:13px;font-weight:bold;border-radius:8px;border:2px solid #1a2a40;background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);cursor:pointer;transition:all .2s;letter-spacing:1px;text-transform:uppercase;position:relative;overflow:hidden}
+.tone-mode-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--tone-color,transparent);opacity:0;transition:opacity .2s}
+.tone-mode-btn:active{transform:scale(.96)}
+.tone-mode-btn.active{border-color:var(--tone-color,var(--neon-blue));box-shadow:0 0 15px var(--tone-glow,rgba(0,229,255,.4));color:var(--tone-color,#fff)}
+.tone-mode-btn.active::before{opacity:1}
+.tone-mode-btn.off-btn{--tone-color:var(--neon-red);--tone-glow:rgba(255,0,51,.4)}
+.tone-mode-btn.pink-btn{--tone-color:var(--neon-yellow);--tone-glow:rgba(255,170,0,.4)}
+.tone-mode-btn.sine-btn{--tone-color:var(--neon-blue);--tone-glow:rgba(0,229,255,.4)}
+.freq-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.freq-btn{padding:10px 0;font-size:10px;font-weight:bold;border-radius:6px;border:1px solid #1a2a40;background:linear-gradient(180deg,#0d1627,#050a14);color:var(--text-dim);cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.freq-btn:active{transform:scale(.95)}
+.freq-btn.active{border-color:var(--neon-blue);color:var(--neon-blue);box-shadow:0 0 10px rgba(0,229,255,.4);background:linear-gradient(180deg,#0a1a27,#050a14)}
+.tone-volume-row{display:flex;align-items:center;gap:10px;padding:10px;background:#03060a;border-radius:6px;border:1px solid #1a2a40;margin-top:8px}
+.tone-volume-label{font-size:10px;font-weight:bold;color:var(--text-dim);min-width:60px}
+.tone-volume-row input[type=range]{flex:1;height:6px;background:#1a2a40;border-radius:3px;outline:none;min-width:0}
+.tone-volume-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--neon-blue);box-shadow:0 0 8px var(--neon-blue);cursor:pointer}
+.tone-volume-value{font-size:11px;font-weight:bold;color:#fff;min-width:40px;text-align:right;font-family:monospace}
+.tone-status-display{background:linear-gradient(180deg,#0d1627,#050a14);border:1px solid #1a2a40;border-radius:8px;padding:12px;margin-top:4px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tone-status-left{display:flex;align-items:center;gap:10px;min-width:0}
+.tone-status-icon{width:40px;height:40px;flex-shrink:0;border-radius:50%;background:#1a2a40;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid #1a2a40;transition:all .3s}
+.tone-status-icon.active{background:var(--neon-blue);border-color:var(--neon-blue);box-shadow:0 0 15px rgba(0,229,255,.6);animation:tone-pulse 1.5s infinite}
+@keyframes tone-pulse{0%,100%{box-shadow:0 0 15px rgba(0,229,255,.6)}50%{box-shadow:0 0 25px rgba(0,229,255,.9)}}
+.tone-status-text{display:flex;flex-direction:column;gap:2px}
+.tone-status-label{font-size:8px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase}
+.tone-status-value{font-size:14px;font-weight:bold;color:#fff;font-family:monospace}
+.tone-status-right{text-align:right}
+.tone-freq-display{font-size:11px;color:var(--neon-blue);font-weight:bold;font-family:monospace}
+.tone-info-box{background:#03060a;border:1px solid #1a2a40;border-radius:6px;padding:10px;margin-top:4px;font-size:9px;color:var(--text-dim);line-height:1.5}
+.tone-info-box b{color:var(--neon-blue)}
+#page-test-tone .sub-page-content{overflow-y:auto;-webkit-overflow-scrolling:touch}
 </style>
 </head>
 <body>
@@ -391,15 +424,13 @@
                 <div class="quick-grid">
                     <button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button>
                     <button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
-                    <button class="quick-btn" onclick="showPage('page-generator')">AUX IN</button>
-                    
-                    <button class="quick-btn">FM RADIO</button>
-                    <button class="quick-btn">PLAYER</button>
-                    <button class="quick-btn">MUTE ALL</button>
-                    
-                    <button class="quick-btn">SYSTEM</button>
-                    <button class="quick-btn">LIGHTS</button>
-                    <button class="quick-btn">NETWORK</button>
+                    <button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
+                    <button class="quick-btn" onclick="showQuickNotice('FM RADIO')">FM RADIO</button>
+                    <button class="quick-btn" onclick="showQuickNotice('PLAYER')">PLAYER</button>
+                    <button class="quick-btn" onclick="showPage('page-mute')">MUTE ALL</button>
+                    <button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button>
+                    <button class="quick-btn" onclick="showQuickNotice('LIGHTS')">LIGHTS</button>
+                    <button class="quick-btn" onclick="showQuickNotice('NETWORK')">NETWORK</button>
                 </div>
             </div>
 
@@ -744,21 +775,46 @@
     </div>
 </div>
 
-<div id="page-generator" class="page">
-    <div class="setting-header">
+<div id="page-test-tone" class="page">
+    <div class="sub-page-header">
         <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
-        <div class="title" style="font-size: 12px;">SIGNAL GENERATOR</div>
-        <div style="width: 80px;"></div>
+        <div class="sub-page-title">TEST TONE</div>
+        <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
     </div>
-    <div class="setting-layout" style="flex-direction: column; padding: 10px; overflow-y: auto;">
-        <div class="control-card">
-            <div class="card-title" style="color: var(--neon-blue);">TEST SIGNAL</div>
-            <div class="generator-grid">
-                <button class="generator-btn gen-off" onclick="sendBLEData('SIG_GEN,0')">OFF</button>
-                <button class="generator-btn gen-pink" onclick="sendBLEData('SIG_GEN,1')">PINK</button>
-                <button class="generator-btn gen-tone" onclick="sendBLEData('SIG_GEN,2')">1 kHz</button>
+    <div class="sub-page-content">
+        <div class="tone-status-display">
+            <div class="tone-status-left">
+                <div class="tone-status-icon" id="tone-status-icon">🔇</div>
+                <div class="tone-status-text"><div class="tone-status-label">STATUS</div><div class="tone-status-value" id="tone-status-text">OFF</div></div>
+            </div>
+            <div class="tone-status-right"><div class="tone-status-label">FREQUENCY</div><div class="tone-freq-display" id="tone-freq-display">—</div></div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-title">🎵 SIGNAL MODE</div>
+            <div class="tone-mode-selector">
+                <button class="tone-mode-btn off-btn active" id="tone-off" onclick="setToneMode('off')">🔇 OFF</button>
+                <button class="tone-mode-btn pink-btn" id="tone-pink" onclick="setToneMode('pink')">🌸 PINK</button>
+                <button class="tone-mode-btn sine-btn" id="tone-sine" onclick="setToneMode('sine')">〰️ SINE</button>
             </div>
         </div>
+        <div class="feature-card" id="freq-selector-card">
+            <div class="feature-card-title">📊 SINE FREQUENCY</div>
+            <div class="freq-grid">
+                <button class="freq-btn" data-freq="100" onclick="setToneFreq(100)">100 Hz</button>
+                <button class="freq-btn" data-freq="250" onclick="setToneFreq(250)">250 Hz</button>
+                <button class="freq-btn" data-freq="500" onclick="setToneFreq(500)">500 Hz</button>
+                <button class="freq-btn active" data-freq="1000" onclick="setToneFreq(1000)">1 kHz</button>
+                <button class="freq-btn" data-freq="2000" onclick="setToneFreq(2000)">2 kHz</button>
+                <button class="freq-btn" data-freq="5000" onclick="setToneFreq(5000)">5 kHz</button>
+                <button class="freq-btn" data-freq="10000" onclick="setToneFreq(10000)">10 kHz</button>
+                <button class="freq-btn" data-freq="15000" onclick="setToneFreq(15000)">15 kHz</button>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-title">🔊 OUTPUT VOLUME</div>
+            <div class="tone-volume-row"><span class="tone-volume-label">LEVEL</span><input type="range" id="tone-volume" min="-60" max="0" value="-12" step="1" oninput="updateToneVolume(this.value)"><span class="tone-volume-value" id="tone-volume-val">-12 dB</span></div>
+        </div>
+        <div class="tone-info-box"><b>💡 CARA PAKAI:</b><br>• <b>PINK NOISE</b> → Untuk RTA & tuning speaker<br>• <b>SINE WAVE</b> → Untuk test phase & delay<br>• Geser <b>VOLUME</b> untuk mengatur level output<br>• Buka halaman <b>RTA</b> untuk melihat analisis frekuensi</div>
     </div>
 </div>
 
@@ -1462,7 +1518,44 @@
         }
         function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { let btn = document.getElementById('btn-p' + i); if(btn) { if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } } }
         
-        function showPage(pageId) {
+        // === TEST TONE / SIGNAL GENERATOR ===
+let currentToneMode = 'off';
+let currentToneFreq = 1000;
+let currentToneVolume = -12;
+function formatFreq(freq){return freq>=1000?(freq/1000).toFixed(freq%1000===0?0:1)+' kHz':freq+' Hz'}
+function setToneMode(mode){
+    if(!['off','pink','sine'].includes(mode)) return;
+    currentToneMode=mode;
+    document.querySelectorAll('.tone-mode-btn').forEach(btn=>btn.classList.remove('active'));
+    const selected=document.getElementById('tone-'+mode); if(selected) selected.classList.add('active');
+    const icon=document.getElementById('tone-status-icon'), label=document.getElementById('tone-status-text'), freq=document.getElementById('tone-freq-display');
+    if(!icon||!label||!freq) return;
+    if(mode==='off'){icon.innerText='🔇';icon.classList.remove('active');label.innerText='OFF';freq.innerText='—';sendBLEData('SIG_GEN,0')}
+    else if(mode==='pink'){icon.innerText='🌸';icon.classList.add('active');label.innerText='PINK NOISE';freq.innerText='Full Range';sendBLEData('SIG_GEN,1')}
+    else{icon.innerText='〰️';icon.classList.add('active');label.innerText='SINE WAVE';freq.innerText=formatFreq(currentToneFreq);sendBLEData('SIG_GEN,2');sendBLEData('SIG_FREQ,'+currentToneFreq)}
+    const card=document.getElementById('freq-selector-card');if(card){card.style.opacity=mode==='sine'?'1':'0.4';card.style.pointerEvents=mode==='sine'?'auto':'none'}
+}
+function setToneFreq(freq){
+    currentToneFreq=Number(freq);
+    document.querySelectorAll('.freq-btn').forEach(btn=>btn.classList.toggle('active',Number(btn.dataset.freq)===currentToneFreq));
+    const display=document.getElementById('tone-freq-display');if(display&&currentToneMode==='sine')display.innerText=formatFreq(currentToneFreq);
+    sendBLEData('SIG_FREQ,'+currentToneFreq);
+}
+function updateToneVolume(val){
+    currentToneVolume=Number(val);
+    const display=document.getElementById('tone-volume-val');if(display)display.innerText=val+' dB';
+    sendBLEData('MASTER,'+val);
+}
+function initTestTonePage(){
+    const slider=document.getElementById('tone-volume');
+    if(slider) slider.value=String(currentToneVolume);
+    const val=document.getElementById('tone-volume-val');if(val)val.innerText=currentToneVolume+' dB';
+    setToneMode('off');
+    setToneFreq(currentToneFreq);
+}
+function showQuickNotice(name){alert(name+' belum tersedia.')}
+
+function showPage(pageId) {
             const page = document.getElementById(pageId);
             if (!page) return;
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1472,6 +1565,7 @@
             if (pageId === 'page-front') syncDashboardUI();
             if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
             if (pageId === 'page-presets') refreshEffectsPage();
+            if (pageId === 'page-test-tone') initTestTonePage();
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
