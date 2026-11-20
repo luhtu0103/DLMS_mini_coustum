@@ -949,6 +949,9 @@
             <span class="sys-icon">🪄</span>
             <span>AI AUTO-SUGGEST TUNING</span>
         </button>
+        <button onclick="testModeAI()" style="margin-top:10px; padding:8px; background:#333; color:white; border:1px solid #555; border-radius:4px; width:100%;">
+            🧪 TEST AI (Simulasi)
+        </button>
     </div>
 </div>
 
@@ -2304,6 +2307,33 @@ function showToast(msg) {
     document.getElementById('rta-peak-db').innerText = peakDb + ' dB';
 }
 
+    // Mode simulasi: analisis AI berjalan tanpa mengirim perintah ke perangkat.
+    let aiAudioSimulationMode = false;
+
+    function testModeAI() {
+        const previousSpectrum = currentSpectrum;
+        const previousLevels = { ...currentLevels };
+
+        try {
+            // Data simulasi: bass 150 Hz dominan dan output 1 hampir clipping.
+            currentSpectrum = [30, 95, 40, 20, 15, 10, 5];
+            currentLevels = {
+                ...currentLevels,
+                out1: 98,
+                out2: 50,
+                out3: 50,
+                out4: 50
+            };
+            aiAudioSimulationMode = true;
+            aiAudioAssistant();
+        } finally {
+            // Kembalikan data monitor asli setelah pengujian.
+            currentSpectrum = previousSpectrum;
+            currentLevels = previousLevels;
+            aiAudioSimulationMode = false;
+        }
+    }
+
     // === FITUR AI AUDIO ASSISTANT (RULE-BASED OFFLINE) ===
     // Menggunakan data monitor yang benar-benar tersedia: currentSpectrum/currentLevels.
     function aiAudioAssistant() {
@@ -2363,13 +2393,15 @@ function showToast(msg) {
         }
 
         let result = '🤖 AI AUDIO ASSISTANT (analisis berbasis aturan)\n\n' + advice.join('\n\n');
-        if (actions.length && !deviceConnected) {
+        if (aiAudioSimulationMode) {
+            result += '\n\n🧪 MODE SIMULASI: tidak ada perintah yang dikirim ke perangkat.';
+        } else if (actions.length && !deviceConnected) {
             result += '\n\nBLE belum terhubung, jadi saran tidak dapat diterapkan dari sini.';
         }
         alert(result);
 
-        // Terapkan perintah hanya setelah konfirmasi dan saat BLE tersambung.
-        if (deviceConnected) {
+        // Mode simulasi tidak boleh mengirim perintah ke perangkat.
+        if (deviceConnected && !aiAudioSimulationMode) {
             actions.forEach(action => {
                 if (confirm(action.prompt)) {
                     action.commands.forEach(command => sendBLEData(command));
