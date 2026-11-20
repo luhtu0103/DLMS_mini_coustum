@@ -439,6 +439,19 @@
 .notes-action-btn.primary{background:var(--neon-blue,#00e5ff);color:#06101d;border-color:var(--neon-blue,#00e5ff)}
 .notes-status{font-size:9px;color:#8ea5bf;margin-top:8px;min-height:14px}
 
+
+/* SPECTRUM 4-OUT */
+#page-spectrum{padding:0}#page-spectrum.active{display:flex;flex-direction:column;height:100vh;min-height:0;box-sizing:border-box}
+.spec-header{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 10px;background:linear-gradient(90deg,#0d1627,#050a14);border-bottom:1px solid #1a2a40;flex-shrink:0}
+.spec-title{font-size:12px;font-weight:bold;color:var(--neon-blue);text-shadow:0 0 8px var(--neon-blue);letter-spacing:1px}.spec-controls{display:flex;gap:4px}
+.spec-ctrl-btn{padding:4px 8px;font-size:9px;font-weight:bold;border-radius:4px;border:1px solid #1a2a40;background:#03060a;color:var(--text-dim);cursor:pointer}.spec-ctrl-btn.active{border-color:var(--neon-yellow);color:var(--neon-yellow);background:rgba(255,170,0,.1)}
+.spec-canvas-wrapper{flex:1;position:relative;background:#03060a;min-height:0;overflow:hidden}#spectrumCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.spec-legend{display:flex;justify-content:center;gap:8px;padding:6px;background:#0d1627;border-top:1px solid #1a2a40;flex-shrink:0;flex-wrap:wrap}.legend-item[data-ch]{display:flex;align-items:center;gap:5px;padding:3px 10px;border:1px solid #1a2a40;border-radius:4px;background:#050a14;cursor:pointer;font-size:9px;font-weight:bold;color:#fff}.legend-item[data-ch] .dot{width:8px;height:8px;border-radius:50%}.legend-item[data-ch].hidden{opacity:.3;text-decoration:line-through}
+.legend-item[data-ch="1"] .dot{background:var(--color-out1,#00e5ff)}.legend-item[data-ch="2"] .dot{background:var(--color-out2,#ff9100)}.legend-item[data-ch="3"] .dot{background:var(--color-out3,#00ff88)}.legend-item[data-ch="4"] .dot{background:var(--color-out4,#ff0033)}
+.spec-footer{display:flex;justify-content:space-around;gap:5px;padding:5px 4px;background:#03060a;border-top:1px solid #1a2a40;font:8px monospace;color:var(--text-dim);flex-shrink:0}.spec-footer .val{color:#fff;font-weight:bold}.spec-smooth-slider{display:flex;align-items:center;gap:6px;padding:4px 10px;background:#0d1627;border-top:1px solid #1a2a40;font-size:8px;color:var(--text-dim);flex-shrink:0}.spec-smooth-slider input{flex:1;height:3px;accent-color:var(--neon-blue)}
+.spec-ai-panel{position:absolute;top:10px;right:10px;background:rgba(13,22,39,.96);border:1px solid var(--neon-blue);border-radius:6px;padding:10px;max-width:220px;font-size:9px;color:#fff;box-shadow:0 0 15px rgba(0,229,255,.3);display:none;z-index:10}.spec-ai-panel.show{display:block}.spec-ai-panel .ai-title{color:var(--neon-blue);font-weight:bold;margin-bottom:5px}.spec-ai-panel .ai-close{position:absolute;top:4px;right:6px;cursor:pointer}
+@media(max-width:480px){.spec-title{font-size:10px}.spec-header{padding:5px}.spec-ctrl-btn{padding:4px 5px}}
+
 </style>
 </head>
 <body>
@@ -484,21 +497,10 @@
 
                 <!-- GRID 3x3 MENU -->
                 <div class="quick-grid">
-                    <!-- Baris 1: Fitur Audio Utama -->
-                    <button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button>
-                    <button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
-                    <button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
-                    
-                    <!-- Baris 2: Monitoring & Sistem -->
-                    <button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button>
-                    <button class="quick-btn" onclick="showPage('page-notes')">NOTES</button>
-                    <button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button>
-                    
-                    <!-- Baris 3: Coming Soon (Kosong) -->
-                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
-                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
-                    <button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
-                </div>
+<button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button><button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button><button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
+<button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button><button class="quick-btn" onclick="showPage('page-spectrum')">SPECTRUM</button><button class="quick-btn" onclick="showPage('page-notes')">NOTES</button>
+<button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button><button class="quick-btn" onclick="showToast('Coming Soon')">-</button><button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
+</div>
             </div>
 
             <div class="graph-panel" id="main-graph-panel">
@@ -955,6 +957,15 @@
     </div>
 </div>
 
+
+<!-- ================= HALAMAN: SPECTRUM 4-OUT ================= -->
+<div id="page-spectrum" class="page">
+<div class="spec-header"><button class="back-btn" onclick="showPage('page-front')">⬅ DASH</button><div class="spec-title">📊 SPECTRUM 4-OUT</div><div class="spec-controls"><button class="spec-ctrl-btn" id="spec-freeze-btn" onclick="toggleSpectrumFreeze()">❄ FREEZE</button><button class="spec-ctrl-btn" id="spec-sim-btn" onclick="toggleSpectrumSim()">🧪 SIM</button><button class="spec-ctrl-btn" onclick="aiSpectrumAnalysis()">🪄 AI</button></div></div>
+<div class="spec-canvas-wrapper"><canvas id="spectrumCanvas"></canvas><div class="spec-ai-panel" id="spec-ai-panel"><span class="ai-close" onclick="document.getElementById('spec-ai-panel').classList.remove('show')">✕</span><div class="ai-title">🤖 AI ANALYSIS</div><div id="spec-ai-content">Menganalisis...</div></div></div>
+<div class="spec-smooth-slider"><span>SMOOTH</span><input type="range" id="spec-smooth" min="0" max="95" value="70" oninput="updateSpecSmooth(this.value)"><span id="spec-smooth-val" style="color:#fff;min-width:30px">70%</span></div>
+<div class="spec-legend"><div class="legend-item" data-ch="1" onclick="toggleSpecChannel(1)"><span class="dot"></span>OUT 1</div><div class="legend-item" data-ch="2" onclick="toggleSpecChannel(2)"><span class="dot"></span>OUT 2</div><div class="legend-item" data-ch="3" onclick="toggleSpecChannel(3)"><span class="dot"></span>OUT 3</div><div class="legend-item" data-ch="4" onclick="toggleSpecChannel(4)"><span class="dot"></span>OUT 4</div></div>
+<div class="spec-footer"><span>PEAK: <span class="val" id="spec-peak">-∞ dB</span></span><span>RMS: <span class="val" id="spec-rms">-∞ dB</span></span><span>SR: <span class="val">48 kHz</span></span><span>BLE: <span class="val" id="spec-ble">OFF</span></span></div>
+</div>
 
 <!-- ================= HALAMAN: NOTES ================= -->
 <div id="page-notes" class="page">
@@ -1883,6 +1894,8 @@ function showPage(pageId) {
             if (pageId !== 'page-monitor' && monitorActive) stopMonitor();
             if (pageId === 'page-monitor') setTimeout(initMonitor, 100);
             if (pageId === 'page-notes') initNotesPage();
+            if (pageId === 'page-spectrum') setTimeout(initSpectrum, 100);
+            if (pageId !== 'page-spectrum') stopSpectrum();
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
@@ -2411,6 +2424,28 @@ function showToast(msg) {
         }
     }
 
-    </script>
+    
+/* === SPECTRUM 4-OUT ENGINE === */
+let specCanvas=null,specCtx=null,specAnimFrame=null,specFrozen=false,specSimMode=true,specSmoothing=.7,simTime=0;
+const SPEC_COLORS={1:{stroke:'#00e5ff',fill:'rgba(0,229,255,.15)',glow:'rgba(0,229,255,.6)'},2:{stroke:'#ff9100',fill:'rgba(255,145,0,.15)',glow:'rgba(255,145,0,.6)'},3:{stroke:'#00ff88',fill:'rgba(0,255,136,.15)',glow:'rgba(0,255,136,.6)'},4:{stroke:'#ff0033',fill:'rgba(255,0,51,.15)',glow:'rgba(255,0,51,.6)'}};
+const SPEC_FREQS=[60,150,400,1000,2400,6000,15000],SPEC_DB_MIN=-60,SPEC_DB_MAX=10;
+let specData={1:Array(7).fill(0),2:Array(7).fill(0),3:Array(7).fill(0),4:Array(7).fill(0)},specSmoothData={1:Array(7).fill(0),2:Array(7).fill(0),3:Array(7).fill(0),4:Array(7).fill(0)},specPeak={1:Array(7).fill(0),2:Array(7).fill(0),3:Array(7).fill(0),4:Array(7).fill(0)},specVisible={1:true,2:true,3:true,4:true};
+function initSpectrum(){specCanvas=document.getElementById('spectrumCanvas');if(!specCanvas)return;specCtx=specCanvas.getContext('2d');resizeSpecCanvas();if(!specCanvas.dataset.resizeBound){window.addEventListener('resize',resizeSpecCanvas);specCanvas.dataset.resizeBound='1';}if(specAnimFrame)cancelAnimationFrame(specAnimFrame);const b=document.getElementById('spec-sim-btn');if(b)b.classList.toggle('active',specSimMode);renderSpectrumLoop();}
+function resizeSpecCanvas(){if(!specCanvas)return;const r=specCanvas.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;const d=window.devicePixelRatio||1;specCanvas.width=Math.round(r.width*d);specCanvas.height=Math.round(r.height*d);specCanvas.style.width=r.width+'px';specCanvas.style.height=r.height+'px';specCtx.setTransform(d,0,0,d,0,0);}
+function stopSpectrum(){if(specAnimFrame)cancelAnimationFrame(specAnimFrame);specAnimFrame=null;specCanvas=null;specCtx=null;}
+function renderSpectrumLoop(){if(!specCtx||!document.getElementById('page-spectrum')?.classList.contains('active')){specAnimFrame=null;return;}if(specSimMode&&!specFrozen)generateSimData();if(!specFrozen)for(let ch=1;ch<=4;ch++)for(let i=0;i<7;i++)specSmoothData[ch][i]=specSmoothData[ch][i]*specSmoothing+specData[ch][i]*(1-specSmoothing);drawSpectrum();const ble=document.getElementById('spec-ble');if(ble){ble.innerText=typeof deviceConnected!=='undefined'&&deviceConnected?'ON':'OFF';ble.style.color=typeof deviceConnected!=='undefined'&&deviceConnected?'var(--neon-green)':'var(--neon-red)';}specAnimFrame=requestAnimationFrame(renderSpectrumLoop);}
+function generateSimData(){simTime+=.02;specData[1]=[10+Math.sin(simTime)*5,25+Math.sin(simTime*1.3)*10,50+Math.sin(simTime*.8)*15,70+Math.sin(simTime*1.1)*10,65+Math.sin(simTime*.9)*12,55+Math.sin(simTime*1.5)*15,30+Math.sin(simTime*2)*10];specData[2]=specData[1].map((v,i)=>Math.max(0,v+Math.sin(simTime*.7+i)*8));specData[3]=[40+Math.sin(simTime*1.2)*15,75+Math.sin(simTime*.9)*12,60+Math.sin(simTime*1.4)*10,20+Math.sin(simTime)*8,10+Math.sin(simTime*.8)*5,5,0];specData[4]=[80+Math.sin(simTime*.6)*15,70+Math.sin(simTime*.8)*12,30+Math.sin(simTime*1.1)*10,5,0,0,0];for(let ch=1;ch<=4;ch++)specData[ch]=specData[ch].map(v=>Math.max(0,Math.min(100,v)));}
+function freqToX(f,w,p){return p+(Math.log10(f)-Math.log10(20))/(Math.log10(20000)-Math.log10(20))*(w-p-10);}
+function drawSpectrum(){if(!specCtx||!specCanvas)return;const w=specCanvas.clientWidth,h=specCanvas.clientHeight;if(!w||!h)return;const l=35,t=10,b=22,r=10;specCtx.clearRect(0,0,w,h);specCtx.fillStyle='#03060a';specCtx.fillRect(0,0,w,h);specCtx.font='9px monospace';specCtx.strokeStyle='#1a2a40';specCtx.lineWidth=.5;specCtx.fillStyle='#4a5a7a';specCtx.textAlign='center';[20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{const x=freqToX(f,w,l);if(x>=l&&x<=w-r){specCtx.beginPath();specCtx.moveTo(x,t);specCtx.lineTo(x,h-b);specCtx.stroke();specCtx.fillText(f>=1000?(f/1000)+'k':String(f),x,h-5);}});specCtx.textAlign='right';[10,0,-10,-20,-30,-40,-50,-60].forEach(db=>{const y=h-b-(db-SPEC_DB_MIN)/(SPEC_DB_MAX-SPEC_DB_MIN)*(h-t-b);specCtx.strokeStyle=db===0?'rgba(255,255,255,.3)':'#1a2a40';specCtx.beginPath();specCtx.moveTo(l,y);specCtx.lineTo(w-r,y);specCtx.stroke();specCtx.fillStyle=db===0?'#fff':'#4a5a7a';specCtx.fillText(String(db),l-4,y+3);});for(let ch=4;ch>=1;ch--)if(specVisible[ch])drawSpecChannel(ch,w,h,l,t,b);updateSpecStats();}
+function drawSpecChannel(ch,w,h,l,t,b){const d=specSmoothData[ch],co=SPEC_COLORS[ch],yy=v=>h-b-(v/100)*(h-t-b);if(!specFrozen)for(let i=0;i<7;i++)specPeak[ch][i]=Math.max(d[i],specPeak[ch][i]-.3);specCtx.beginPath();specCtx.moveTo(l,h-b);for(let i=0;i<7;i++){const x=freqToX(SPEC_FREQS[i],w,l),y=yy(d[i]);if(!i)specCtx.lineTo(x,y);else{const px=freqToX(SPEC_FREQS[i-1],w,l),py=yy(d[i-1]),cx=(px+x)/2;specCtx.bezierCurveTo(cx,py,cx,y,x,y);}}specCtx.lineTo(w-10,h-b);specCtx.closePath();specCtx.fillStyle=co.fill;specCtx.fill();specCtx.beginPath();for(let i=0;i<7;i++){const x=freqToX(SPEC_FREQS[i],w,l),y=yy(d[i]);if(!i)specCtx.moveTo(x,y);else{const px=freqToX(SPEC_FREQS[i-1],w,l),py=yy(d[i-1]),cx=(px+x)/2;specCtx.bezierCurveTo(cx,py,cx,y,x,y);}}specCtx.strokeStyle=co.stroke;specCtx.lineWidth=2;specCtx.shadowBlur=8;specCtx.shadowColor=co.glow;specCtx.stroke();specCtx.shadowBlur=0;specCtx.setLineDash([3,3]);specCtx.beginPath();specPeak[ch].forEach((v,i)=>{const x=freqToX(SPEC_FREQS[i],w,l),y=yy(v);if(!i)specCtx.moveTo(x,y);else specCtx.lineTo(x,y);});specCtx.strokeStyle=co.stroke;specCtx.globalAlpha=.5;specCtx.stroke();specCtx.globalAlpha=1;specCtx.setLineDash([]);for(let i=0;i<7;i++){specCtx.beginPath();specCtx.arc(freqToX(SPEC_FREQS[i],w,l),yy(d[i]),3,0,Math.PI*2);specCtx.fillStyle=co.stroke;specCtx.fill();}}
+function updateSpecStats(){let p=0,s=0,n=0;for(let ch=1;ch<=4;ch++)if(specVisible[ch])specSmoothData[ch].forEach(v=>{p=Math.max(p,v);s+=v*v;n++;});const db=v=>v>0?(SPEC_DB_MIN+v/100*(SPEC_DB_MAX-SPEC_DB_MIN)).toFixed(1):'-∞';const pe=document.getElementById('spec-peak'),re=document.getElementById('spec-rms');if(pe)pe.innerText=db(p)+' dB';if(re)re.innerText=db(n?Math.sqrt(s/n):0)+' dB';}
+function toggleSpectrumFreeze(){specFrozen=!specFrozen;const b=document.getElementById('spec-freeze-btn');if(b){b.innerText=specFrozen?'▶ RESUME':'❄ FREEZE';b.classList.toggle('active',specFrozen);}}
+function toggleSpectrumSim(){specSimMode=!specSimMode;const b=document.getElementById('spec-sim-btn');if(b)b.classList.toggle('active',specSimMode);if(typeof showToast==='function')showToast(specSimMode?'🧪 Mode Simulasi AKTIF':'📡 Mode Data Real ESP32');}
+function toggleSpecChannel(ch){specVisible[ch]=!specVisible[ch];const e=document.querySelector('.legend-item[data-ch="'+ch+'"]');if(e)e.classList.toggle('hidden',!specVisible[ch]);}
+function updateSpecSmooth(v){specSmoothing=Math.max(0,Math.min(95,Number(v)))/100;const e=document.getElementById('spec-smooth-val');if(e)e.innerText=v+'%';}
+function aiSpectrumAnalysis(){const panel=document.getElementById('spec-ai-panel'),out=document.getElementById('spec-ai-content');if(!panel||!out)return;panel.classList.add('show');let report='',issues=0;for(let ch=1;ch<=4;ch++){if(!specVisible[ch])continue;const d=specSmoothData[ch],name=['Mid-High R','Mid-High L','Low','Sub'][ch-1],color=SPEC_COLORS[ch].stroke;if(d.some(v=>v>95)){report+='<div style="color:'+color+'">🚨 OUT '+ch+' ('+name+'): CLIPPING — turunkan gain.</div>';issues++;}if((ch===3||ch===4)&&d[1]>85){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Bass 150Hz dominan (Boomy).</div>';issues++;}if((ch===1||ch===2)&&(d[5]>85||d[6]>85)){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Treble tajam (Harsh).</div>';issues++;}if((ch===1||ch===2)&&d[3]<25&&(d[0]>60||d[1]>60)){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Vokal mungkin tertutup bass.</div>';issues++;}}const a=specSmoothData[1].reduce((x,y)=>x+y,0)/7,z=specSmoothData[2].reduce((x,y)=>x+y,0)/7;if(Math.abs(a-z)>20){report+='<div>⚖️ L/R tidak seimbang: '+Math.round(Math.abs(a-z))+'%.</div>';issues++;}out.innerHTML=issues?report+'<div style="margin-top:8px;color:var(--neon-yellow)">Total '+issues+' masalah.</div>':'<div style="color:var(--neon-green)">Tidak ada anomali besar pada data saat ini.</div>';}
+function handleSpectrum4Data(text){if(specSimMode||typeof text!=='string'||!text.startsWith('SPECTRUM4:'))return;const rows=text.slice(10).split('|');if(rows.length!==4)return;const parsed=rows.map(x=>x.split(',').map(Number));if(parsed.some(a=>a.length!==7||a.some(v=>!Number.isFinite(v))))return;for(let ch=1;ch<=4;ch++)specData[ch]=parsed[ch-1].map(v=>Math.max(0,Math.min(100,v)));}
+
+</script>
 </body>
 </html>
