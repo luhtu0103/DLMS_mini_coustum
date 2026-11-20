@@ -944,6 +944,11 @@
             <div class="status-item-monitor">⏱️ SR: <span class="value">48 kHz</span></div>
             <div class="status-item-monitor">📡 BLE: <span class="value" id="monitor-ble-status">OFF</span></div>
         </div>
+        <!-- TOMBOL AI AUTO-SUGGEST -->
+        <button class="sys-btn-modern primary" onclick="aiAudioAssistant()" style="width: 100%; margin-top: 8px; padding: 12px;">
+            <span class="sys-icon">🪄</span>
+            <span>AI AUTO-SUGGEST TUNING</span>
+        </button>
     </div>
 </div>
 
@@ -2298,6 +2303,81 @@ function showToast(msg) {
     document.getElementById('rta-rms-db').innerText = dbLevel + ' dB';
     document.getElementById('rta-peak-db').innerText = peakDb + ' dB';
 }
+
+    // === FITUR AI AUDIO ASSISTANT (RULE-BASED OFFLINE) ===
+    // Menggunakan data monitor yang benar-benar tersedia: currentSpectrum/currentLevels.
+    function aiAudioAssistant() {
+        const s = Array.isArray(currentSpectrum) ? currentSpectrum : [];
+        const level = currentLevels || {};
+        const advice = [];
+        const actions = [];
+        let hasIssue = false;
+
+        if (s.length < 7) {
+            alert('Data spektrum belum tersedia. Buka MONITOR dan tunggu data masuk.');
+            return;
+        }
+
+        // Aturan 1: Bass boomy (150 Hz dominan)
+        if (s[1] > 75 && s[1] > s[2] + 20) {
+            advice.push('⚠️ Deteksi: 150 Hz terlalu dominan (boomy/bergumam).\n💡 Saran: atur PEQ Band 1 OUT 3 ke -3 dB.');
+            actions.push({
+                prompt: 'Terapkan saran bass boomy? OUT 3 PEQ 1 akan disetel ke -3 dB.',
+                commands: ['OUT3_PEQ1GAIN,-3'],
+                toast: 'Perintah dikirim: OUT 3 PEQ 1 = -3 dB'
+            });
+            hasIssue = true;
+        }
+
+        // Aturan 2: Vokal tertimbun bass
+        if (s[3] < 40 && (s[1] > 50 || s[0] > 50)) {
+            advice.push('⚠️ Deteksi: 1 kHz (vokal) rendah sementara bass tinggi.\n💡 Saran: atur PEQ Band 2 OUT 1 dan OUT 2 ke +2 dB.');
+            actions.push({
+                prompt: 'Terapkan saran vokal? OUT 1 dan OUT 2 PEQ 2 akan disetel ke +2 dB.',
+                commands: ['OUT1_PEQ2GAIN,2', 'OUT2_PEQ2GAIN,2'],
+                toast: 'Perintah dikirim: OUT 1 & 2 PEQ 2 = +2 dB'
+            });
+            hasIssue = true;
+        }
+
+        // Aturan 3: Treble terlalu tajam
+        if (s[5] > 85 || s[6] > 85) {
+            advice.push('⚠️ Deteksi: frekuensi tinggi (6–15 kHz) sangat dominan.\n💡 Saran: atur PEQ Band 3 OUT 1 dan OUT 2 ke -2 dB.');
+            actions.push({
+                prompt: 'Terapkan saran treble? OUT 1 dan OUT 2 PEQ 3 akan disetel ke -2 dB.',
+                commands: ['OUT1_PEQ3GAIN,-2', 'OUT2_PEQ3GAIN,-2'],
+                toast: 'Perintah dikirim: OUT 1 & 2 PEQ 3 = -2 dB'
+            });
+            hasIssue = true;
+        }
+
+        // Aturan 4: Level output mendekati clipping
+        if ([level.out1, level.out2, level.out3, level.out4].some(v => Number(v) > 95)) {
+            advice.push('🚨 PERINGATAN: level output mendekati clipping! Turunkan MASTER VOL atau gain channel dan periksa level sebelum menaikkan volume lagi.');
+            hasIssue = true;
+        }
+
+        if (!hasIssue) {
+            advice.push('✅ Analisis: tidak ada masalah yang terdeteksi oleh aturan sederhana ini. Ini bukan jaminan sistem audio aman atau sudah seimbang.');
+        }
+
+        let result = '🤖 AI AUDIO ASSISTANT (analisis berbasis aturan)\n\n' + advice.join('\n\n');
+        if (actions.length && !deviceConnected) {
+            result += '\n\nBLE belum terhubung, jadi saran tidak dapat diterapkan dari sini.';
+        }
+        alert(result);
+
+        // Terapkan perintah hanya setelah konfirmasi dan saat BLE tersambung.
+        if (deviceConnected) {
+            actions.forEach(action => {
+                if (confirm(action.prompt)) {
+                    action.commands.forEach(command => sendBLEData(command));
+                    showToast(action.toast);
+                }
+            });
+        }
+    }
+
     </script>
 </body>
 </html>
