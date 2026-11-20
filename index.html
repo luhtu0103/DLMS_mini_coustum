@@ -2313,8 +2313,9 @@ function showToast(msg) {
         const actions = [];
         let hasIssue = false;
 
-        if (s.length < 7) {
-            alert('Data spektrum belum tersedia. Buka MONITOR dan tunggu data masuk.');
+        if (s.length < 7 || (s.every(v => Number(v) === 0) &&
+            ['inL', 'inR', 'out1', 'out2', 'out3', 'out4'].every(ch => Number(level[ch] || 0) === 0))) {
+            alert('Data spektrum/level belum tersedia. Hubungkan BLE, buka MONITOR, lalu tunggu data masuk sebelum menganalisis.');
             return;
         }
 
