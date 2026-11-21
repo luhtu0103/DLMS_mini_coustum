@@ -13,7 +13,8 @@ const permissions = [
   '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
   '<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />',
   '<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />',
-  '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
+  '<uses-permission android:name="android.permission.RECORD_AUDIO" />',
+  '<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />'
 ];
 
 for (const permission of permissions) {
