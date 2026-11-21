@@ -7,6 +7,7 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <BLESecurity.h>
 #include <BLE2902.h>
 #include "driver/i2s_std.h"
 #include <math.h>
@@ -66,6 +67,7 @@ int delay_write_pos[4] = {0, 0, 0, 0};
 
 volatile int gen_type = 0;
 float gen_freq = 1000.0;
+volatile float gen_level_db = -12.0f;
 float gen_phase = 0.0;
 float pink_b0=0, pink_b1=0, pink_b2=0, pink_b3=0, pink_b4=0, pink_b5=0, pink_b6=0;
 
@@ -220,7 +222,7 @@ void loadFromNVS() {
 // ==========================================
 class MyServerCallbacks: public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) { deviceConnected = true; Serial.println("✅ BLE Connected"); }
-  void onDisconnect(BLEServer* pServer) { deviceConnected = false; pServer->startAdvertising(); Serial.println("❌ BLE Disconnected"); }
+  void onDisconnect(BLEServer* pServer) { deviceConnected = false; gen_type = 0; pServer->startAdvertising(); Serial.println("❌ BLE Disconnected; signal generator stopped"); }
 };
 
 class MyCallbacks: public BLECharacteristicCallbacks {
@@ -229,15 +231,23 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     int comma = data.indexOf(',');
     if (comma < 0) return;
     String cmd = data.substring(0, comma);
-    float val = data.substring(comma + 1).toFloat();
-    
-    if (cmd == "SIG_GEN") { gen_type = (int)val; if(gen_type==2) gen_phase=0.0; }
-    else if (cmd == "SIG_FREQ") { gen_freq = val; gen_phase = 0.0; }
-    else if (cmd == "SAVE_TO_NVS") saveToNVS();
-    else if (cmd == "LOAD_FROM_NVS") loadFromNVS();
-    else if (cmd == "MASTER") { master_volume = val; }
+    String valueText = data.substring(comma + 1);
+    char *endPtr = nullptr;
+    float val = strtof(valueText.c_str(), &endPtr);
+    // Reject malformed, NaN and infinite numbers before any DSP/state change.
+    if (endPtr == valueText.c_str() || *endPtr != '\\0' || !isfinite(val)) return;
+
+    if (cmd == "SIG_GEN") { if (val != 0 && val != 1 && val != 2) return; gen_type = (int)val; if(gen_type==2) gen_phase=0.0; }
+    else if (cmd == "SIG_FREQ") { if (val < 20 || val > 20000) return; gen_freq = val; gen_phase = 0.0; }
+    else if (cmd == "TONE_LEVEL") { if (val < -60 || val > 0) return; gen_level_db = val; }
+    else if (cmd == "SAVE_TO_NVS") { if (val == 1) saveToNVS(); }
+    else if (cmd == "LOAD_FROM_NVS") { if (val == 1) loadFromNVS(); }
+    else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; }
     else if (cmd == "ALL_BYPASS") { global_bypass = (val > 0); }
     else if (cmd.startsWith("IN_")) {
+      if ((cmd.endsWith("_GAIN") || cmd.endsWith("_PEQGAIN")) && (val < -20 || val > 20)) return;
+      if (cmd.endsWith("_PEQFREQ") && (val < 20 || val > 20000)) return;
+      if (cmd.endsWith("_MUTE") && val != 0 && val != 1) return;
       if (cmd == "IN_L_GAIN") inL.gain_db = val;
       else if (cmd == "IN_L_PEQFREQ") { inL.peq_freq = val; calcBiquadPEQ(&inL.peq, val, inL.peq_gain, 1.0); }
       else if (cmd == "IN_L_PEQGAIN") { inL.peq_gain = val; calcBiquadPEQ(&inL.peq, inL.peq_freq, val, 1.0); }
@@ -252,7 +262,18 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       if (ch < 1 || ch > 4) return;
       OutputChannel *out = (ch==1)?&out1:(ch==2)?&out2:(ch==3)?&out3:&out4;
       String p = cmd.substring(5);
-      
+      // Enforce physical/UI ranges on every output parameter.
+      if (p == "GAIN" && (val < -60 || val > 12)) return;
+      if (p == "DELAY" && (val < 0 || val > 10)) return;
+      if ((p.endsWith("FREQ")) && (val < 20 || val > 20000)) return;
+      if ((p.startsWith("PEQ") && p.endsWith("GAIN")) && (val < -15 || val > 15)) return;
+      if (p == "COMP_THRESH" && (val < -60 || val > 0)) return;
+      if (p == "COMP_RATIO" && (val < 1 || val > 20)) return;
+      if ((p == "COMP_ATK" && (val < 1 || val > 100)) || (p == "COMP_REL" && (val < 50 || val > 1000))) return;
+      if (p == "LIMIT" && (val < -20 || val > 0)) return;
+      if ((p == "HPF_ON" || p == "LPF_ON" || p == "COMP_ON" || p == "LIMIT_ON" || p == "MUTE" || p == "PHASE") && val != 0 && val != 1) return;
+      if (p == "ROUTING" && (val < 0 || val > 3 || floorf(val) != val)) return;
+
       if (p == "GAIN") out->gain_db = val;
       else if (p == "DELAY") out->delay_ms = val;
       else if (p == "MUTE") out->is_mute = (val > 0);
@@ -350,6 +371,8 @@ void audioProcessingTask(void *parameter) {
         if (gen_phase >= 2.0f * M_PI) gen_phase -= 2.0f * M_PI;
       }
       
+      if (gen_type != 0) { const float toneScale = powf(10.0f, gen_level_db / 20.0f); rawL *= toneScale; rawR *= toneScale; }
+
       if (fft_sample_count < FFT_SIZE) {
         fft_buffer[fft_sample_count] = (rawL + rawR) * 0.5f;
         if (++fft_sample_count == FFT_SIZE) { processFFT(); fft_sample_count = 0; }
@@ -429,6 +452,11 @@ void setup() {
   i2s_channel_init_std_mode(tx1_handle, &std1); i2s_channel_enable(tx1_handle);
   
   BLEDevice::init("DLMS_CUSTOM");
+  BLESecurity *bleSecurity = new BLESecurity();
+  bleSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
+  bleSecurity->setCapability(ESP_IO_CAP_OUT);
+  bleSecurity->setStaticPIN(482731);
+  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_MITM);
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
   BLEService *pService = pServer->createService(SERVICE_UUID);
