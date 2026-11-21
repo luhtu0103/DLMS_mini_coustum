@@ -684,7 +684,7 @@
                 alert('❌ Preset tidak valid: ' + error.message);
             }
         }
-        function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { let btn = document.getElementById('btn-p' + i); if(btn) { if(i === activeNum) btn.classList.add('active'); else btn.classList.remove('active'); } } }
+        function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { const btn = document.getElementById('preset-btn-p' + i) || document.getElementById('btn-p' + i); if(btn) btn.classList.toggle('active', i === activeNum); } }
         
         // === TEST TONE / SIGNAL GENERATOR ===
 let currentToneMode = 'off';
@@ -724,7 +724,7 @@ function initTestTonePage(){
 function showQuickNotice(name){alert(name+' belum tersedia.')}
 
 
-function isSystemBLEConnected(){return !!(bleCharacteristic&&bleDevice&&bleDevice.gatt&&bleDevice.gatt.connected);}
+function isSystemBLEConnected(){return isBLEConnected();}
 function saveToNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('SAVE_TO_NVS,1');showToast('Permintaan simpan dikirim; perlu dukungan firmware.');}
 function loadFromNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('LOAD_FROM_NVS,1');showToast('Permintaan muat dikirim; perlu dukungan firmware.');}
 function saveBackupLocal(){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');const b={version:'1.0',timestamp:new Date().toISOString(),outs:globalState,ins:inputState,master:m?Number(m.value):0,deviceName:document.getElementById('dash-title').innerText};try{localStorage.setItem('DLMS_BACKUP_FULL',JSON.stringify(b));showToast('📱 Backup tersimpan di HP!');updateSystemInfo();}catch(e){showToast('❌ Gagal menyimpan backup!');}}
@@ -1098,7 +1098,7 @@ function loadPreset(num) {
   if(parsed.outs&&parsed.ins){
    activeUserPreset=num; activeScene=null;
    document.querySelectorAll('.scene-card').forEach(c=>c.classList.remove('active'));
-   document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='btn-p'+num));
+   document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='preset-btn-p'+num || b.id==='btn-p'+num));
    if(typeof buildMixer==='function')buildMixer();
   }
  } catch(e) { /* handlePresetClick menampilkan pesan jika data tidak valid */ }
@@ -1116,7 +1116,7 @@ function toggleAllBypass() {
 
 function refreshEffectsPage() {
  document.querySelectorAll('.scene-card').forEach(c=>c.classList.toggle('active',c.dataset.scene===activeScene));
- document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='btn-p'+activeUserPreset));
+ document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.toggle('active',b.id==='preset-btn-p'+activeUserPreset || b.id==='btn-p'+activeUserPreset));
  const btn=document.getElementById('bypass-all-btn');
  if(btn){btn.classList.toggle('active',allEffectsBypassed);btn.innerText=allEffectsBypassed?'⚡ BYPASS AKTIF - TAP UNTUK NORMAL':'⚡ BYPASS ALL EFFECTS';}
 }
