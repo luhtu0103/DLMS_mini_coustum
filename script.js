@@ -1155,6 +1155,7 @@ function showToast(msg) {
     let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaDataArray, rtaStream;
     let rtaActive = false;
     let rtaSmoothing = 0.8;
+    let rtaSensitivity = 5; // 1 = less sensitive, 10 = more sensitive
     let rtaPeakHold = new Array(16).fill(0);
     let rtaPageActive = false;
 
@@ -1195,6 +1196,12 @@ function showToast(msg) {
         rtaSmoothing = val / 100;
         document.getElementById('rta-smooth-val').innerText = val + '%';
         if (rtaAnalyser) rtaAnalyser.smoothingTimeConstant = rtaSmoothing;
+    }
+
+    function updateRTASensitivity(val) {
+        rtaSensitivity = Math.max(1, Math.min(10, Number(val) || 5));
+        const label = document.getElementById('rta-sensitivity-val');
+        if (label) label.innerText = rtaSensitivity + '/10';
     }
 
     async function toggleRTA() {
@@ -1307,8 +1314,17 @@ function showToast(msg) {
             count++;
         }
         let avg = count > 0 ? sum / count : 0;
-        
-        // FIX: Clamp percent max 100% agar tidak overflow
+
+        // Sensitivitas tampilan + noise gate. Ini mengatur grafik RTA, bukan gain fisik mikrofon.
+        const noiseGate = 3 + (10 - rtaSensitivity) * 2.5;
+        if (avg < noiseGate) {
+            avg = 0;
+        } else {
+            const displayGain = 0.65 + (rtaSensitivity * 0.07);
+            avg = Math.min(255, avg * displayGain);
+        }
+
+        // Clamp percent max 100% agar bar tidak overflow.
         let percent = Math.min(100, (avg / 255) * 100);
         
         // Peak hold (turun perlahan)
