@@ -90,13 +90,16 @@
         }
 
         function onDisconnected() {
+            // Stop generator locally where possible; firmware also stops it on disconnect.
+            currentToneMode = 'off';
             bleNativeConnected = false;
             bleCommandQueue.length = 0;
             document.body.classList.remove('ble-active');
             document.body.classList.remove('reactive-glow', 'reactive-bass');
             document.querySelectorAll('.led-block, .mini-led').forEach(led => { led.style.backgroundColor = ''; led.style.boxShadow = ''; });
             document.querySelectorAll('#dash-rta-bars rect').forEach(rect => { rect.setAttribute('height', 0); rect.setAttribute('y', 100); });
-            updateBLEStatus(false); 
+            updateBLEStatus(false);
+            updateToneUIOff();
         }
         
         function updateBLEStatus(isConnected) {
@@ -706,6 +709,13 @@ let currentToneMode = 'off';
 let currentToneFreq = 1000;
 let currentToneVolume = -12;
 function formatFreq(freq){return freq>=1000?(freq/1000).toFixed(freq%1000===0?0:1)+' kHz':freq+' Hz'}
+function updateToneUIOff(){
+    document.querySelectorAll('.tone-mode-btn').forEach(btn=>btn.classList.toggle('active',btn.id==='tone-off'));
+    const icon=document.getElementById('tone-status-icon'), label=document.getElementById('tone-status-text'), freq=document.getElementById('tone-freq-display');
+    if(icon){icon.innerText='🔇';icon.classList.remove('active');}
+    if(label) label.innerText='OFF';
+    if(freq) freq.innerText='—';
+}
 function setToneMode(mode){
     if(!['off','pink','sine'].includes(mode)) return;
     currentToneMode=mode;
@@ -725,9 +735,13 @@ function setToneFreq(freq){
     sendBLEData('SIG_FREQ,'+currentToneFreq);
 }
 function updateToneVolume(val){
-    currentToneVolume=Number(val);
-    const display=document.getElementById('tone-volume-val');if(display)display.innerText=val+' dB';
-    sendBLEData('MASTER,'+val);
+    const n = Number(val);
+    if (!Number.isFinite(n)) return;
+    currentToneVolume = Math.max(-60, Math.min(0, n));
+    const display=document.getElementById('tone-volume-val');
+    if(display) display.innerText=currentToneVolume+' dB';
+    // Dedicated generator level; does not modify MASTER.
+    sendBLEData('TONE_LEVEL,'+currentToneVolume);
 }
 function initTestTonePage(){
     const slider=document.getElementById('tone-volume');
@@ -882,6 +896,12 @@ function exportNotes() {
 function showPage(pageId) {
             const page = document.getElementById(pageId);
             if (!page) return;
+            const currentPage = document.querySelector('.page.active');
+            if (currentPage && currentPage.id === 'page-test-tone' && pageId !== 'page-test-tone' && currentToneMode !== 'off') {
+                sendBLEData('SIG_GEN,0');
+                currentToneMode = 'off';
+                updateToneUIOff();
+            }
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             page.classList.add('active');
             if (pageId !== 'page-rta' && rtaActive) toggleRTA();
