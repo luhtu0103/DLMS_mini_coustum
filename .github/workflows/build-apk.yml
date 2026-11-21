@@ -51,6 +51,9 @@ jobs:
       - name: Generate Android project
         run: npx cap add android
 
+      - name: Configure Android permissions
+        run: node scripts/configure-android.js
+
       - name: Sync Capacitor assets
         run: npx cap sync android
 
