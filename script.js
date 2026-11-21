@@ -1152,7 +1152,7 @@ function showToast(msg) {
       }
 
     // === RTA PAGE VARIABLES ===
-    let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaDataArray;
+    let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaDataArray, rtaStream;
     let rtaActive = false;
     let rtaSmoothing = 0.8;
     let rtaPeakHold = new Array(16).fill(0);
@@ -1203,21 +1203,36 @@ function showToast(msg) {
         
         if (!rtaActive) {
             try {
-                status.innerText = "⏳ Meminta izin mikrofon...";
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { 
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false 
-                    } 
+                status.innerText = "⏳ Memeriksa izin mikrofon...";
+                if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                    throw new Error('Akses mikrofon tidak tersedia di WebView ini. Perbarui Android System WebView/Chrome.');
+                }
+
+                const cap = window.Capacitor;
+                const nativePlatform = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+                if (nativePlatform) {
+                    const permissionPlugin = cap.Plugins && cap.Plugins.MicrophonePermission;
+                    if (permissionPlugin && typeof permissionPlugin.request === 'function') {
+                        const permission = await permissionPlugin.request();
+                        if (!permission || permission.granted !== true) {
+                            throw new Error('Izin RECORD_AUDIO belum diberikan. Aktifkan Mikrofon di Pengaturan Android > Aplikasi > DLMS Mini > Izin.');
+                        }
+                    }
+                }
+
+                status.innerText = "⏳ Membuka mikrofon...";
+                rtaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
                 });
-                
-                rtaAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) throw new Error('AudioContext tidak didukung perangkat ini.');
+                rtaAudioContext = new AudioContextClass();
+                if (rtaAudioContext.state === 'suspended') await rtaAudioContext.resume();
                 rtaAnalyser = rtaAudioContext.createAnalyser();
                 rtaAnalyser.fftSize = 512;
                 rtaAnalyser.smoothingTimeConstant = rtaSmoothing;
                 
-                rtaMicrophone = rtaAudioContext.createMediaStreamSource(stream);
+                rtaMicrophone = rtaAudioContext.createMediaStreamSource(rtaStream);
                 rtaMicrophone.connect(rtaAnalyser);
                 
                 rtaDataArray = new Uint8Array(rtaAnalyser.frequencyBinCount);
@@ -1230,12 +1245,37 @@ function showToast(msg) {
                 
                 updateRTA16Band();
             } catch (err) {
-                status.innerText = "❌ Gagal: " + err.message;
-                alert("⚠️ Izin mic ditolak!\nPastikan pakai Chrome Android dan izinkan akses mikrofon.");
+                console.error('RTA microphone error:', err);
+                const reason = err && err.name ? err.name + ': ' : '';
+                const detail = (err && err.message) ? err.message : 'Kesalahan tidak diketahui';
+                status.innerText = "❌ " + reason + detail;
+                alert("RTA gagal mengakses mikrofon.\\n" + reason + detail);
+                if (rtaStream) {
+                    rtaStream.getTracks().forEach(track => track.stop());
+                    rtaStream = null;
+                }
+                if (rtaAudioContext) {
+                    try { await rtaAudioContext.close(); } catch (_) {}
+                    rtaAudioContext = null;
+                }
+                rtaAnalyser = null;
+                rtaMicrophone = null;
             }
         } else {
             rtaActive = false;
-            if (rtaAudioContext) rtaAudioContext.close();
+            if (rtaMicrophone) {
+                try { rtaMicrophone.disconnect(); } catch (_) {}
+                rtaMicrophone = null;
+            }
+            if (rtaStream) {
+                rtaStream.getTracks().forEach(track => track.stop());
+                rtaStream = null;
+            }
+            if (rtaAudioContext) {
+                try { await rtaAudioContext.close(); } catch (_) {}
+                rtaAudioContext = null;
+            }
+            rtaAnalyser = null;
             btn.innerText = "🎤 MULAI";
             btn.classList.remove('active');
             status.innerText = "Tekan MULAI untuk aktifkan mikrofon HP";
