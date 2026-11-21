@@ -1250,7 +1250,7 @@ function showToast(msg) {
                 const reason = err && err.name ? err.name + ': ' : '';
                 const detail = (err && err.message) ? err.message : 'Kesalahan tidak diketahui';
                 status.innerText = "❌ " + reason + detail;
-                alert("RTA gagal mengakses mikrofon.\\n" + reason + detail);
+                alert("RTA gagal mengakses mikrofon.\n" + reason + detail);
                 if (rtaStream) {
                     rtaStream.getTracks().forEach(track => track.stop());
                     rtaStream = null;
