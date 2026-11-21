@@ -14,6 +14,7 @@ on:
       - 'package.json'
       - 'capacitor.config.json'
       - 'scripts/**'
+      - 'native-ble-entry.js'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -31,8 +32,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package.json
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -45,6 +44,9 @@ jobs:
 
       - name: Prepare web assets
         run: npm run build:web
+
+      - name: Bundle native BLE plugin
+        run: npx esbuild native-ble-entry.js --bundle --platform=browser --format=iife --global-name=DLMSNativeBLEBundle --outfile=www/native-ble-bundle.js
 
       - name: Generate Android project
         run: npx cap add android
