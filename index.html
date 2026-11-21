@@ -279,6 +279,14 @@
                 <span id="rta-smooth-val" style="font-size: 9px; color: var(--neon-blue); min-width: 30px;">80%</span>
             </div>
         </div>
+
+        <!-- RTA Sensitivity / Noise Gate -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 2px 0;">
+            <span style="font-size: 9px; color: var(--text-dim); white-space: nowrap;">SENSITIVITAS:</span>
+            <input type="range" id="rta-sensitivity" min="1" max="10" step="1" value="5" aria-label="Sensitivitas RTA" style="flex: 1; min-width: 60px; max-width: 180px; height: 4px;" oninput="updateRTASensitivity(this.value)">
+            <span id="rta-sensitivity-val" style="font-size: 9px; color: var(--neon-blue); min-width: 28px;">5/10</span>
+            <span style="font-size: 9px; color: var(--text-dim);">Noise gate</span>
+        </div>
         
         <!-- PEAK & RMS Display -->
         <div style="display: flex; justify-content: space-between; font-size: 10px; flex-shrink: 0;">
