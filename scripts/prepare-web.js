@@ -22,4 +22,14 @@ for (const file of [...required, ...optional]) {
   }
 }
 
+// Load the generated native BLE adapter only in the packaged Android app.
+const htmlPath = path.join(out, 'index.html');
+let html = fs.readFileSync(htmlPath, 'utf8');
+const scriptTag = '<script src="script.js"></script>';
+if (!html.includes(scriptTag)) {
+  throw new Error('Could not find script.js tag in index.html');
+}
+html = html.replace(scriptTag, '<script src="native-ble-bundle.js"></script>\\n    ' + scriptTag);
+fs.writeFileSync(htmlPath, html, 'utf8');
+
 console.log('Prepared Capacitor web assets:', fs.readdirSync(out).join(', '));
