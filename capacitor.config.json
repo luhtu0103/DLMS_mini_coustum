@@ -1,0 +1,9 @@
+{
+  "appId": "com.dlmsmini.controller",
+  "appName": "DLMS Mini",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
