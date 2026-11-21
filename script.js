@@ -410,8 +410,8 @@
             if (targetOut < 1 || targetOut > 4) return;
             let src = globalState[sourceOut];
             let tgt = globalState[targetOut];
-            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq;
-            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq;
+            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq; tgt.hpfSlope = src.hpfSlope || 24;
+            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq; tgt.lpfSlope = src.lpfSlope || 24;
             tgt.p1f = src.p1f; tgt.p1g = src.p1g;
             tgt.p2f = src.p2f; tgt.p2g = src.p2g;
             tgt.p3f = src.p3f; tgt.p3g = src.p3g;
@@ -422,8 +422,10 @@
             tgt.compAtk = src.compAtk; tgt.compRel = src.compRel;
             sendBLEData('OUT' + targetOut + '_HPF_ON,' + (tgt.hpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_HPFFREQ,' + tgt.hpfFreq);
+            sendBLEData('OUT' + targetOut + '_HPFSLOPE,' + tgt.hpfSlope);
             sendBLEData('OUT' + targetOut + '_LPF_ON,' + (tgt.lpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_LPFFREQ,' + tgt.lpfFreq);
+            sendBLEData('OUT' + targetOut + '_LPFSLOPE,' + tgt.lpfSlope);
             sendBLEData('OUT' + targetOut + '_PEQ1FREQ,' + tgt.p1f);
             sendBLEData('OUT' + targetOut + '_PEQ1GAIN,' + tgt.p1g);
             sendBLEData('OUT' + targetOut + '_PEQ2FREQ,' + tgt.p2f);
@@ -1460,7 +1462,15 @@ function showToast(msg) {
         if (deviceConnected && !aiAudioSimulationMode) {
             actions.forEach(action => {
                 if (confirm(action.prompt)) {
-                    action.commands.forEach(command => sendBLEData(command));
+                    action.commands.forEach(command => {
+                        const freqMatch = command.match(/^OUT([1-4])_PEQ([1-3])FREQ,([0-9.]+)$/);
+                        if (freqMatch) {
+                            const outNum = Number(freqMatch[1]);
+                            const band = Number(freqMatch[2]);
+                            globalState[outNum]['p' + band + 'f'] = Number(freqMatch[3]);
+                        }
+                        sendBLEData(command);
+                    });
                     showToast(action.toast);
                 }
             });
