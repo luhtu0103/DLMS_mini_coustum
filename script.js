@@ -89,7 +89,7 @@
             }
         }
 
-                function onDisconnected() {
+        function onDisconnected() {
             bleNativeConnected = false;
             bleCommandQueue.length = 0;
             document.body.classList.remove('ble-active');
