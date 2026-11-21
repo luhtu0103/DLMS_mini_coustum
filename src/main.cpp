@@ -127,6 +127,8 @@ float processCompressor(float input, OutputChannel *out) {
 }
 
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
+  // Routing NONE must be silent, including filter and delay-line tails.
+  if (out->routing == 3) return 0.0f;
   float o = 0;
   if (out->routing == 0) o = sigL;
   else if (out->routing == 1) o = sigR;
