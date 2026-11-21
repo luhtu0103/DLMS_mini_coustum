@@ -1,4 +1,16 @@
         let bleDevice, bleCharacteristic;
+        let bleNativeConnected = false;
+
+        function getNativeBLE() {
+            if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) return null;
+            return window.DLMSNativeBLEBundle && window.DLMSNativeBLEBundle.nativeBLE ? window.DLMSNativeBLEBundle.nativeBLE : null;
+        }
+
+        function isBLEConnected() {
+            const nativeBLE = getNativeBLE();
+            if (nativeBLE) return bleNativeConnected && nativeBLE.isConnected();
+            return !!(bleDevice && bleDevice.gatt && bleDevice.gatt.connected);
+        }
         const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
         const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
 
@@ -45,30 +57,40 @@
         }
 
         async function connectBLE() {
-            if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
-                alert('Sudah terhubung ke ' + bleDevice.name);
+            if (isBLEConnected()) {
+                alert('Sudah terhubung ke ' + (bleDevice?.name || 'perangkat BLE'));
                 return;
             }
             try {
-                bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
-                const server = await bleDevice.gatt.connect();
-                const service = await server.getPrimaryService(SERVICE_UUID);
-                bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-                await bleCharacteristic.startNotifications();
-                bleCharacteristic.addEventListener('characteristicvaluechanged', handleBLEMessage);
+                const nativeBLE = getNativeBLE();
+                if (nativeBLE) {
+                    bleDevice = await nativeBLE.connect(
+                        value => handleBLEMessage({ target: { value } }),
+                        onDisconnected
+                    );
+                    bleNativeConnected = true;
+                } else {
+                    bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
+                    const server = await bleDevice.gatt.connect();
+                    const service = await server.getPrimaryService(SERVICE_UUID);
+                    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+                    await bleCharacteristic.startNotifications();
+                    bleCharacteristic.addEventListener('characteristicvaluechanged', handleBLEMessage);
+                    bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                }
                 document.body.classList.add('ble-active');
-                updateBLEStatus(true); 
-                alert('✅ Terhubung ke ' + bleDevice.name); 
-                bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-            } catch (error) { 
-                console.error('Error BLE:', error); 
+                updateBLEStatus(true);
+                alert('✅ Terhubung ke ' + (bleDevice.name || 'ESP32-S3'));
+            } catch (error) {
+                console.error('Error BLE:', error);
                 if (error.name !== 'NotFoundError') {
-                    alert('❌ Gagal terhubung: ' + error.message); 
+                    alert('❌ Gagal terhubung: ' + error.message);
                 }
             }
         }
-        
-        function onDisconnected() {
+
+                function onDisconnected() {
+            bleNativeConnected = false;
             bleCommandQueue.length = 0;
             document.body.classList.remove('ble-active');
             document.body.classList.remove('reactive-glow', 'reactive-bass');
@@ -79,12 +101,12 @@
         
         function updateBLEStatus(isConnected) {
             const btn = document.getElementById('btnConnectBLE'); const dot = document.getElementById('bleStatusDot'); const text = document.getElementById('bleStatusText');
-            if (isConnected) { btn.innerText = 'CONNECTED'; btn.classList.add('connected'); dot.classList.add('on'); text.innerText = 'BLE: CONNECTED (' + bleDevice.name + ')'; } 
-            else { btn.innerText = 'CONNECT BLE'; btn.classList.remove('connected'); dot.classList.remove('on'); text.innerText = 'BLE: DISCONNECTED'; bleDevice = null; bleCharacteristic = null; }
+            if (isConnected) { btn.innerText = 'CONNECTED'; btn.classList.add('connected'); dot.classList.add('on'); text.innerText = 'BLE: CONNECTED (' + (bleDevice?.name || 'ESP32-S3') + ')'; }
+            else { btn.innerText = 'CONNECT BLE'; btn.classList.remove('connected'); dot.classList.remove('on'); text.innerText = 'BLE: DISCONNECTED'; bleDevice = null; bleCharacteristic = null; bleNativeConnected = false; }
         }
-        
+
         async function sendBLEData(text) {
-            if (!bleCharacteristic || !bleDevice?.gatt?.connected) return;
+            if (!isBLEConnected()) return;
             const command = String(text);
             const commandKey = command.split(',')[0];
             // Coalesce pending updates for the same control while dragging sliders.
@@ -94,9 +116,11 @@
             if (bleQueueBusy) return;
             bleQueueBusy = true;
             try {
-                while (bleCommandQueue.length && bleCharacteristic && bleDevice?.gatt?.connected) {
+                while (bleCommandQueue.length && isBLEConnected()) {
                     const command = bleCommandQueue.shift();
-                    await bleCharacteristic.writeValue(new TextEncoder().encode(command + '\n'));
+                    const nativeBLE = getNativeBLE();
+                    if (nativeBLE) await nativeBLE.write(command + '\n');
+                    else await bleCharacteristic.writeValue(new TextEncoder().encode(command + '\n'));
                     await new Promise(resolve => setTimeout(resolve, 12));
                 }
             } catch (error) {
