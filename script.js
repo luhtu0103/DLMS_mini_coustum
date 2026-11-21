@@ -488,7 +488,14 @@
 
         function loadStateToUI(outNum) { 
             let st = globalState[outNum]; 
-            document.getElementById('hpfFreq').value = st.hpfFreq; document.getElementById('hpfToggle').className = st.hpfOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('hpfToggle').innerText = st.hpfOn ? 'ON' : 'OFF'; 
+            document.getElementById('hpfFreq').value = st.hpfFreq; document.getElementById('hpfToggle').className = st.hpfOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('hpfToggle').innerText = st.hpfOn ? 'ON' : 'OFF';
+            document.querySelectorAll('#hpfToggle').forEach(() => {});
+            const hpfSlope = st.hpfSlope || 24;
+            const lpfSlope = st.lpfSlope || 24;
+            const hpfCard = document.getElementById('hpfToggle').parentElement;
+            const lpfCard = document.getElementById('lpfToggle').parentElement;
+            hpfCard.querySelectorAll('.slope-btn').forEach(b => b.classList.toggle('active', Number(b.innerText.trim()) === hpfSlope));
+            lpfCard.querySelectorAll('.slope-btn').forEach(b => b.classList.toggle('active', Number(b.innerText.trim()) === lpfSlope));
             document.getElementById('lpfFreq').value = st.lpfFreq; document.getElementById('lpfToggle').className = st.lpfOn ? 'toggle-switch on lpf' : 'toggle-switch lpf'; document.getElementById('lpfToggle').innerText = st.lpfOn ? 'ON' : 'OFF'; 
             document.getElementById('peq1_freq').value = st.p1f; document.getElementById('peq1_gain').value = st.p1g; 
             document.getElementById('peq2_freq').value = st.p2f; document.getElementById('peq2_gain').value = st.p2g; 
