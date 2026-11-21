@@ -1,5 +1,5 @@
-// DLMS Mini Service Worker - Version 4 (Network-First Strategy)
-const CACHE_NAME = 'dlms-v4';
+// DLMS Mini Service Worker - Version 5 (Network-First Strategy)
+const CACHE_NAME = 'dlms-v5';
 const urlsToCache = [
   '/DLMS_mini_coustum/',
   '/DLMS_mini_coustum/index.html',
