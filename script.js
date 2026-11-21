@@ -489,7 +489,6 @@
         function loadStateToUI(outNum) { 
             let st = globalState[outNum]; 
             document.getElementById('hpfFreq').value = st.hpfFreq; document.getElementById('hpfToggle').className = st.hpfOn ? 'toggle-switch on' : 'toggle-switch'; document.getElementById('hpfToggle').innerText = st.hpfOn ? 'ON' : 'OFF';
-            document.querySelectorAll('#hpfToggle').forEach(() => {});
             const hpfSlope = st.hpfSlope || 24;
             const lpfSlope = st.lpfSlope || 24;
             const hpfCard = document.getElementById('hpfToggle').parentElement;
