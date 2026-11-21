@@ -1159,25 +1159,28 @@ function showToast(msg) {
     let rtaPeakHold = new Array(16).fill(0);
     let rtaPageActive = false;
 
-    // Mapping 16 band frekuensi (standar ISO)
-    const rtaBands = [
-        [0, 1],    // 31 Hz
-        [1, 2],    // 63 Hz
-        [2, 4],    // 125 Hz
-        [4, 7],    // 250 Hz
-        [7, 11],   // 500 Hz
-        [11, 16],  // 1k Hz
-        [16, 23],  // 2k Hz
-        [23, 32],  // 4k Hz
-        [32, 45],  // 8k Hz
-        [45, 63],  // 16k Hz (approx)
-        [63, 89],  // extended
-        [89, 120],
-        [120, 160],
-        [160, 200],
-        [200, 230],
-        [230, 255]
-    ];
+    // 16 band logaritmik dari frekuensi aktual, bukan indeks FFT yang diasumsikan.
+    // Batas bin dihitung ulang dari sample rate dan ukuran FFT perangkat.
+    function buildRTABands(sampleRate, fftSize, bandCount = 16) {
+        const nyquist = sampleRate / 2;
+        const minHz = 31.5;
+        const maxHz = Math.min(16000, nyquist * 0.95);
+        const binHz = sampleRate / fftSize;
+        const edges = [];
+        for (let i = 0; i <= bandCount; i++) {
+            edges.push(minHz * Math.pow(maxHz / minHz, i / bandCount));
+        }
+        return Array.from({ length: bandCount }, (_, i) => {
+            let start = Math.max(0, Math.floor(edges[i] / binHz));
+            let end = Math.min(fftSize / 2, Math.max(start + 1, Math.ceil(edges[i + 1] / binHz)));
+            // Untuk band di bawah resolusi FFT, tetap ambil bin terdekat.
+            if (start >= fftSize / 2) start = fftSize / 2 - 1;
+            if (end <= start) end = start + 1;
+            return [start, Math.min(fftSize / 2, end)];
+        });
+    }
+
+    let rtaBands = [];
 
     function openRTAPage() {
         rtaPageActive = true;
@@ -1237,13 +1240,14 @@ function showToast(msg) {
                 rtaAudioContext = new AudioContextClass();
                 if (rtaAudioContext.state === 'suspended') await rtaAudioContext.resume();
                 rtaAnalyser = rtaAudioContext.createAnalyser();
-                rtaAnalyser.fftSize = 512;
+                rtaAnalyser.fftSize = 4096;
                 rtaAnalyser.smoothingTimeConstant = rtaSmoothing;
                 
                 rtaMicrophone = rtaAudioContext.createMediaStreamSource(rtaStream);
                 rtaMicrophone.connect(rtaAnalyser);
                 
                 rtaDataArray = new Uint8Array(rtaAnalyser.frequencyBinCount);
+                rtaBands = buildRTABands(rtaAudioContext.sampleRate, rtaAnalyser.fftSize, 16);
                 rtaPeakHold = new Array(16).fill(0);
                 
                 rtaActive = true;
