@@ -1211,12 +1211,13 @@ function showToast(msg) {
                 const cap = window.Capacitor;
                 const nativePlatform = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
                 if (nativePlatform) {
-                    const permissionPlugin = cap.Plugins && cap.Plugins.MicrophonePermission;
-                    if (permissionPlugin && typeof permissionPlugin.request === 'function') {
-                        const permission = await permissionPlugin.request();
-                        if (!permission || permission.granted !== true) {
-                            throw new Error('Izin RECORD_AUDIO belum diberikan. Aktifkan Mikrofon di Pengaturan Android > Aplikasi > DLMS Mini > Izin.');
-                        }
+                    const permissionPlugin = window.DLMSMicrophonePermission;
+                    if (!permissionPlugin || typeof permissionPlugin.request !== 'function') {
+                        throw new Error('Jembatan izin mikrofon native tidak tersedia. Instal ulang APK terbaru.');
+                    }
+                    const permission = await permissionPlugin.request();
+                    if (!permission || permission.granted !== true) {
+                        throw new Error('Izin mikrofon ditolak Android. Buka Pengaturan > Aplikasi > DLMS Mini > Izin > Mikrofon, lalu pilih Izinkan.');
                     }
                 }
 
