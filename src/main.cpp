@@ -128,9 +128,10 @@ float processCompressor(float input, OutputChannel *out) {
 
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
   float o = 0;
-  if (out->routing == 0) o = sigL; 
-  else if (out->routing == 1) o = sigR; 
-  else o = (sigL + sigR) * 0.5f;
+  if (out->routing == 0) o = sigL;
+  else if (out->routing == 1) o = sigR;
+  else if (out->routing == 2) o = (sigL + sigR) * 0.5f;
+  else o = 0.0f; // routing 3 = none/silence
   
   o *= pow(10.0, out->gain_db / 20.0);
   
@@ -173,8 +174,9 @@ void saveToNVS() {
     preferences.putBool((p+"mute").c_str(), out->is_mute);
     preferences.putFloat((p+"gain").c_str(), out->gain_db);
     preferences.putFloat((p+"delay").c_str(), out->delay_ms);
-    preferences.putBool((p+"hpf_on").c_str(), out->hpf_on); preferences.putFloat((p+"hpf_f").c_str(), out->hpf_freq);
-    preferences.putBool((p+"lpf_on").c_str(), out->lpf_on); preferences.putFloat((p+"lpf_f").c_str(), out->lpf_freq);
+    for(int j=0;j<3;j++){String k=String(j+1);preferences.putFloat((p+"peqf"+k).c_str(),out->peq_freq[j]);preferences.putFloat((p+"pegg"+k).c_str(),out->peq_gain[j]);}
+    preferences.putBool((p+"hpf_on").c_str(), out->hpf_on); preferences.putFloat((p+"hpf_f").c_str(), out->hpf_freq); preferences.putInt((p+"hpf_slope").c_str(), out->hpf_slope);
+    preferences.putBool((p+"lpf_on").c_str(), out->lpf_on); preferences.putFloat((p+"lpf_f").c_str(), out->lpf_freq); preferences.putInt((p+"lpf_slope").c_str(), out->lpf_slope);
     preferences.putBool((p+"comp_on").c_str(), out->comp_on); preferences.putFloat((p+"comp_t").c_str(), out->comp_thresh);
     preferences.putFloat((p+"comp_r").c_str(), out->comp_ratio);
     preferences.putInt((p+"routing").c_str(), out->routing);
@@ -194,11 +196,12 @@ void loadFromNVS() {
       out->is_mute = preferences.getBool((p+"mute").c_str(), false);
       out->gain_db = preferences.getFloat((p+"gain").c_str(), 0.0);
       out->delay_ms = preferences.getFloat((p+"delay").c_str(), 0.0);
+      for(int j=0;j<3;j++){String k=String(j+1);out->peq_freq[j]=preferences.getFloat((p+"peqf"+k).c_str(),j==0?100.0f:(j==1?1000.0f:5000.0f));out->peq_gain[j]=preferences.getFloat((p+"pegg"+k).c_str(),0.0f);calcBiquadPEQ(&out->peq[j],out->peq_freq[j],out->peq_gain[j],1.0);}
       out->routing = preferences.getInt((p+"routing").c_str(), 2);
       out->hpf_on = preferences.getBool((p+"hpf_on").c_str(), false);
-      out->hpf_freq = preferences.getFloat((p+"hpf_f").c_str(), 20.0); calcBiquadHighpass(&out->hpf, out->hpf_freq, 0.707);
+      out->hpf_freq = preferences.getFloat((p+"hpf_f").c_str(), 20.0); out->hpf_slope = preferences.getInt((p+"hpf_slope").c_str(), 24); calcBiquadHighpass(&out->hpf, out->hpf_freq, 0.707);
       out->lpf_on = preferences.getBool((p+"lpf_on").c_str(), false);
-      out->lpf_freq = preferences.getFloat((p+"lpf_f").c_str(), 20000.0); calcBiquadLowpass(&out->lpf, out->lpf_freq, 0.707);
+      out->lpf_freq = preferences.getFloat((p+"lpf_f").c_str(), 20000.0); out->lpf_slope = preferences.getInt((p+"lpf_slope").c_str(), 24); calcBiquadLowpass(&out->lpf, out->lpf_freq, 0.707);
       out->comp_on = preferences.getBool((p+"comp_on").c_str(), false);
       out->comp_thresh = preferences.getFloat((p+"comp_t").c_str(), -20.0);
       out->comp_ratio = preferences.getFloat((p+"comp_r").c_str(), 4.0);
@@ -253,8 +256,10 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       else if (p == "MUTE") out->is_mute = (val > 0);
       else if (p == "PHASE") out->phase_180 = (val > 0);
       else if (p == "HPF_ON") out->hpf_on = (val > 0);
+       else if (p == "HPFSLOPE") out->hpf_slope = (val >= 24) ? 24 : 12;
       else if (p == "HPFFREQ") { out->hpf_freq = val; calcBiquadHighpass(&out->hpf, val, 0.707); }
       else if (p == "LPF_ON") out->lpf_on = (val > 0);
+       else if (p == "LPFSLOPE") out->lpf_slope = (val >= 24) ? 24 : 12;
       else if (p == "LPFFREQ") { out->lpf_freq = val; calcBiquadLowpass(&out->lpf, val, 0.707); }
       else if (p == "PEQ1FREQ") { out->peq_freq[0] = val; calcBiquadPEQ(&out->peq[0], val, out->peq_gain[0], 1.0); }
       else if (p == "PEQ1GAIN") { out->peq_gain[0] = val; calcBiquadPEQ(&out->peq[0], out->peq_freq[0], val, 1.0); }
@@ -269,6 +274,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       else if (p == "COMP_REL") out->comp_release_coeff = expf(-1.0f / (val * 48.0f));
       else if (p == "LIMIT_ON") out->limiter_on = (val > 0);
       else if (p == "LIMIT") out->limiter_thresh = val;
+       else if (p == "ROUTING") out->routing = constrain((int)val, 0, 3);
     }
     else if (cmd.startsWith("ROUTING_OUT")) {
       int ch = cmd.substring(11,12).toInt();
@@ -434,7 +440,7 @@ void setup() {
   
   for(int i=1; i<=4; i++) {
     OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
-    out->delay_ms = 0.0; out->comp_on = false; out->comp_thresh = -20.0; out->comp_ratio = 4.0;
+    out->delay_ms = 0.0; out->hpf_slope = 24; out->lpf_slope = 24; out->comp_on = false; out->comp_thresh = -20.0; out->comp_ratio = 4.0;
     out->comp_attack_coeff = expf(-1.0f / (10.0 * 48.0f)); out->comp_release_coeff = expf(-1.0f / (200.0 * 48.0f));
     calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
     for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
