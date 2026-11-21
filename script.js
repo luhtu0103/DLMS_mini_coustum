@@ -1118,7 +1118,8 @@ function showToast(msg) {
             buildMixer();
         };
 
-      if ('serviceWorker' in navigator) {
+      const isNativeCapacitor = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+      if ('serviceWorker' in navigator && !isNativeCapacitor) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('✅ Service Worker terdaftar'))
