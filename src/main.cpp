@@ -445,7 +445,8 @@ void setup() {
     out->delay_ms = 0.0; out->hpf_slope = 24; out->lpf_slope = 24; out->comp_on = false; out->comp_thresh = -20.0; out->comp_ratio = 4.0;
     out->comp_attack_coeff = expf(-1.0f / (10.0 * 48.0f)); out->comp_release_coeff = expf(-1.0f / (200.0 * 48.0f));
     calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
-    for(int j=0; j<3; j++) calcBiquadPEQ(&out->peq[j], 1000, 0, 1.0);
+    out->peq_freq[0] = 100.0f; out->peq_freq[1] = 1000.0f; out->peq_freq[2] = 5000.0f;
+    for(int j=0; j<3; j++) { out->peq_gain[j] = 0.0f; calcBiquadPEQ(&out->peq[j], out->peq_freq[j], out->peq_gain[j], 1.0); }
   }
   calcBiquadPEQ(&inL.peq, 1000, 0, 1.0); calcBiquadPEQ(&inR.peq, 1000, 0, 1.0);
   
