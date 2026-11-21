@@ -1,4 +1,8 @@
 import { BleClient } from '@capacitor-community/bluetooth-le';
+import { registerPlugin } from '@capacitor/core';
+
+// Expose the native runtime microphone permission bridge to the web UI.
+window.DLMSMicrophonePermission = registerPlugin('MicrophonePermission');
 
 const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
