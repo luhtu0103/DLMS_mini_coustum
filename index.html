@@ -135,7 +135,7 @@
                 <div class="master-row">
                     <div class="master-vol-container">
                         <div class="master-vol-header"><span>MASTER VOL</span><span id="masterVolVal" style="color: var(--neon-blue);">0 dB</span></div>
-                        <input type="range" min="-60" max="0" value="0" oninput="document.getElementById('masterVolVal').innerText = this.value + ' dB'; sendBLEData('MASTER,' + this.value);">
+                        <input id="master-volume" type="range" min="-60" max="0" value="0" oninput="document.getElementById('masterVolVal').innerText = this.value + ' dB'; sendBLEData('MASTER,' + this.value);">
                     </div>
                     <div class="gr-meter"><div class="gr-label">GR</div><div class="gr-fill"></div></div>
                 </div>
