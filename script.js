@@ -26,10 +26,10 @@
         let bleQueueBusy = false;
 
         let globalState = {
-            1: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
-            2: { hpfOn: true, hpfFreq: 80, lpfOn: false, lpfFreq: 20000, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
-            3: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 100, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
-            4: { hpfOn: false, hpfFreq: 80, lpfOn: true, lpfFreq: 85, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 }
+            1: { hpfOn: true, hpfFreq: 80, hpfSlope: 24, lpfOn: false, lpfFreq: 20000, lpfSlope: 24, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            2: { hpfOn: true, hpfFreq: 80, hpfSlope: 24, lpfOn: false, lpfFreq: 20000, lpfSlope: 24, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            3: { hpfOn: false, hpfFreq: 80, hpfSlope: 24, lpfOn: true, lpfFreq: 100, lpfSlope: 24, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 0, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 },
+            4: { hpfOn: false, hpfFreq: 80, hpfSlope: 24, lpfOn: true, lpfFreq: 85, lpfSlope: 24, p1f: 100, p1g: 0, p2f: 1000, p2g: 0, p3f: 5000, p3g: 0, gain: 0, delay: 0, limitOn: true, limit: 0, routing: 1, isMute: false, phase180: false, compOn: false, compThresh: -20, compRatio: 4, compAtk: 10, compRel: 200 }
         };
 
         let inputState = {
@@ -410,8 +410,8 @@
             if (targetOut < 1 || targetOut > 4) return;
             let src = globalState[sourceOut];
             let tgt = globalState[targetOut];
-            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq; tgt.hpfSlope = src.hpfSlope || 24;
-            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq; tgt.lpfSlope = src.lpfSlope || 24;
+            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq; tgt.hpfSlope = src.hpfSlope || 24; tgt.hpfSlope = src.hpfSlope || 24;
+            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq; tgt.lpfSlope = src.lpfSlope || 24; tgt.lpfSlope = src.lpfSlope || 24;
             tgt.p1f = src.p1f; tgt.p1g = src.p1g;
             tgt.p2f = src.p2f; tgt.p2g = src.p2g;
             tgt.p3f = src.p3f; tgt.p3g = src.p3g;
@@ -423,8 +423,10 @@
             sendBLEData('OUT' + targetOut + '_HPF_ON,' + (tgt.hpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_HPFFREQ,' + tgt.hpfFreq);
             sendBLEData('OUT' + targetOut + '_HPFSLOPE,' + tgt.hpfSlope);
+            sendBLEData('OUT' + targetOut + '_HPFSLOPE,' + tgt.hpfSlope);
             sendBLEData('OUT' + targetOut + '_LPF_ON,' + (tgt.lpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_LPFFREQ,' + tgt.lpfFreq);
+            sendBLEData('OUT' + targetOut + '_LPFSLOPE,' + tgt.lpfSlope);
             sendBLEData('OUT' + targetOut + '_LPFSLOPE,' + tgt.lpfSlope);
             sendBLEData('OUT' + targetOut + '_PEQ1FREQ,' + tgt.p1f);
             sendBLEData('OUT' + targetOut + '_PEQ1GAIN,' + tgt.p1g);
@@ -509,8 +511,8 @@
         function sendOutputStateToDevice(outNum, st) {
             const prefix = 'OUT' + outNum + '_';
             const commands = [
-                ['HPF_ON', st.hpfOn ? 1 : 0], ['HPFFREQ', st.hpfFreq],
-                ['LPF_ON', st.lpfOn ? 1 : 0], ['LPFFREQ', st.lpfFreq],
+                ['HPF_ON', st.hpfOn ? 1 : 0], ['HPFFREQ', st.hpfFreq], ['HPFSLOPE', st.hpfSlope || 24],
+                ['LPF_ON', st.lpfOn ? 1 : 0], ['LPFFREQ', st.lpfFreq], ['LPFSLOPE', st.lpfSlope || 24],
                 ['PEQ1FREQ', st.p1f], ['PEQ1GAIN', st.p1g],
                 ['PEQ2FREQ', st.p2f], ['PEQ2GAIN', st.p2g],
                 ['PEQ3FREQ', st.p3f], ['PEQ3GAIN', st.p3g],
@@ -519,12 +521,10 @@
                 ['COMP_ON', st.compOn ? 1 : 0], ['COMP_THRESH', st.compThresh],
                 ['COMP_RATIO', st.compRatio], ['COMP_ATK', st.compAtk], ['COMP_REL', st.compRel],
                 ['MUTE', st.isMute ? 1 : 0], ['PHASE', st.phase180 ? 1 : 0],
-                ['ROUTING_OUT' + outNum + '_L', st.routing === 0 ? 1 : 0],
-                ['ROUTING_OUT' + outNum + '_R', st.routing === 1 ? 1 : 0]
+                ['ROUTING', Number.isInteger(st.routing) ? st.routing : 2]
             ];
             commands.forEach(([param, value]) => {
-                if (param.startsWith('ROUTING_OUT')) sendBLEData(param + ',' + value);
-                else sendBLEData(prefix + param + ',' + value);
+                sendBLEData(prefix + param + ',' + value);
             });
         }
 
@@ -597,7 +597,15 @@
         }
         
         function toggleFilter(btn) { btn.classList.toggle('on'); let isOn = btn.classList.contains('on'); btn.innerText = isOn ? 'ON' : 'OFF'; sendBLEData('OUT' + currentOut + '_' + btn.id.replace('Toggle', '').toUpperCase() + '_ON,' + (isOn ? 1 : 0)); if(btn.id === 'hpfToggle' || btn.id === 'lpfToggle') updateGraph(); applyGlobalLink(currentOut); }
-        function setSlope(btn, type) { let parent = btn.parentElement; parent.querySelectorAll('.slope-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); sendBLEData('OUT' + currentOut + '_' + type + 'SLOPE,' + btn.innerText); }
+        function setSlope(btn, type) {
+            const slope = Number(btn.innerText.trim());
+            if (slope !== 12 && slope !== 24) return;
+            btn.parentElement.querySelectorAll('.slope-btn').forEach(b => b.classList.toggle('active', b === btn));
+            const key = type.toLowerCase() + 'Slope';
+            if (globalState[currentOut]) globalState[currentOut][key] = slope;
+            sendBLEData('OUT' + currentOut + '_' + type + 'SLOPE,' + slope);
+            applyGlobalLink(currentOut);
+        }
         
         function toggleMute(btn, targetName) { 
             btn.classList.toggle('active'); let isMute = btn.classList.contains('active'); sendBLEData(targetName + '_MUTE,' + (isMute ? 1 : 0)); 
@@ -623,8 +631,7 @@
             else if (isL) st.routing = 0; 
             else if (isR) st.routing = 1; 
             else st.routing = 3; 
-            sendBLEData('ROUTING_OUT' + outNum + '_L,' + (isL ? 1 : 0)); 
-            sendBLEData('ROUTING_OUT' + outNum + '_R,' + (isR ? 1 : 0)); 
+            sendBLEData('OUT' + outNum + '_ROUTING,' + st.routing); 
         }
         function toggleBypass(btn) {
             const isOn = !btn.classList.contains('active');
@@ -755,7 +762,7 @@ function initMonitor(){
         for(let i=0;i<SEGMENTS_PER_METER;i++){const el=document.createElement('div');el.className='meter-segment';wrap.appendChild(el);}
     });
     const ble=document.getElementById('monitor-ble-status');
-    if(ble){ble.textContent=deviceConnected?'ON':'OFF';ble.style.color=deviceConnected?'var(--neon-green)':'var(--neon-red)';}
+    if(ble){ble.textContent=isBLEConnected()?'ON':'OFF';ble.style.color=isBLEConnected()?'var(--neon-green)':'var(--neon-red)';}
     if(scopeAnimFrame)cancelAnimationFrame(scopeAnimFrame);
     renderMonitor();
 }
@@ -1073,20 +1080,38 @@ let activeUserPreset = null;
 let allEffectsBypassed = false;
 
 function applyScene(sceneName) {
- const scene=SCENE_PRESETS[sceneName];
- if(!scene)return;
- for(let i=1;i<=4;i++){
-  const st=scene.outs[i]; if(!st||!globalState[i])continue;
-  for(const [key,param] of [['p1g','PEQ1GAIN'],['p2g','PEQ2GAIN'],['p3g','PEQ3GAIN'],['gain','GAIN']]){
-   if(st[key]!==undefined){globalState[i][key]=st[key];sendBLEData('OUT'+i+'_'+param+','+st[key]);}
+  const scene = SCENE_PRESETS[sceneName];
+  if (!scene) return;
+  for (let i = 1; i <= 4; i++) {
+    const st = scene.outs[i];
+    if (!st || !globalState[i]) continue;
+    for (const [freqKey, gainKey, freqParam, gainParam, fallback] of [
+      ['p1f', 'p1g', 'PEQ1FREQ', 'PEQ1GAIN', 100],
+      ['p2f', 'p2g', 'PEQ2FREQ', 'PEQ2GAIN', 1000],
+      ['p3f', 'p3g', 'PEQ3FREQ', 'PEQ3GAIN', 5000]
+    ]) {
+      const freq = Number(st[freqKey] ?? globalState[i][freqKey] ?? fallback);
+      if (Number.isFinite(freq) && freq >= 20 && freq <= 20000) {
+        globalState[i][freqKey] = freq;
+        sendBLEData('OUT' + i + '_' + freqParam + ',' + freq);
+      }
+      if (st[gainKey] !== undefined) {
+        globalState[i][gainKey] = st[gainKey];
+        sendBLEData('OUT' + i + '_' + gainParam + ',' + st[gainKey]);
+      }
+    }
+    if (st.gain !== undefined) {
+      globalState[i].gain = st.gain;
+      sendBLEData('OUT' + i + '_GAIN,' + st.gain);
+    }
   }
- }
- activeScene=sceneName; activeUserPreset=null;
- document.querySelectorAll('.scene-card').forEach(c=>c.classList.toggle('active',c.dataset.scene===sceneName));
- document.querySelectorAll('.preset-large-btn').forEach(b=>b.classList.remove('active'));
- syncDashboardUI();
- if(typeof buildMixer==='function')buildMixer();
- showToast('🎨 Scene "'+scene.name+'" diterapkan');
+  activeScene = sceneName;
+  activeUserPreset = null;
+  document.querySelectorAll('.scene-card').forEach(c => c.classList.toggle('active', c.dataset.scene === sceneName));
+  document.querySelectorAll('.preset-large-btn').forEach(b => b.classList.remove('active'));
+  syncDashboardUI();
+  if (typeof buildMixer === 'function') buildMixer();
+  showToast('🎨 Scene "' + scene.name + '" diterapkan');
 }
 
 function loadPreset(num) {
@@ -1412,7 +1437,7 @@ function showToast(msg) {
             advice.push('⚠️ Deteksi: 150 Hz terlalu dominan (boomy/bergumam).\n💡 Saran: atur PEQ Band 1 OUT 3 ke -3 dB.');
             actions.push({
                 prompt: 'Terapkan saran bass boomy? OUT 3 PEQ 1 akan disetel ke -3 dB.',
-                commands: ['OUT3_PEQ1GAIN,-3'],
+                commands: ['OUT3_PEQ1FREQ,150', 'OUT3_PEQ1GAIN,-3'],
                 toast: 'Perintah dikirim: OUT 3 PEQ 1 = -3 dB'
             });
             hasIssue = true;
@@ -1423,7 +1448,7 @@ function showToast(msg) {
             advice.push('⚠️ Deteksi: 1 kHz (vokal) rendah sementara bass tinggi.\n💡 Saran: atur PEQ Band 2 OUT 1 dan OUT 2 ke +2 dB.');
             actions.push({
                 prompt: 'Terapkan saran vokal? OUT 1 dan OUT 2 PEQ 2 akan disetel ke +2 dB.',
-                commands: ['OUT1_PEQ2GAIN,2', 'OUT2_PEQ2GAIN,2'],
+                commands: ['OUT1_PEQ2FREQ,1000', 'OUT1_PEQ2GAIN,2', 'OUT2_PEQ2FREQ,1000', 'OUT2_PEQ2GAIN,2'],
                 toast: 'Perintah dikirim: OUT 1 & 2 PEQ 2 = +2 dB'
             });
             hasIssue = true;
@@ -1434,7 +1459,7 @@ function showToast(msg) {
             advice.push('⚠️ Deteksi: frekuensi tinggi (6–15 kHz) sangat dominan.\n💡 Saran: atur PEQ Band 3 OUT 1 dan OUT 2 ke -2 dB.');
             actions.push({
                 prompt: 'Terapkan saran treble? OUT 1 dan OUT 2 PEQ 3 akan disetel ke -2 dB.',
-                commands: ['OUT1_PEQ3GAIN,-2', 'OUT2_PEQ3GAIN,-2'],
+                commands: ['OUT1_PEQ3FREQ,8000', 'OUT1_PEQ3GAIN,-2', 'OUT2_PEQ3FREQ,8000', 'OUT2_PEQ3GAIN,-2'],
                 toast: 'Perintah dikirim: OUT 1 & 2 PEQ 3 = -2 dB'
             });
             hasIssue = true;
@@ -1453,13 +1478,13 @@ function showToast(msg) {
         let result = '🤖 AI AUDIO ASSISTANT (analisis berbasis aturan)\n\n' + advice.join('\n\n');
         if (aiAudioSimulationMode) {
             result += '\n\n🧪 MODE SIMULASI: tidak ada perintah yang dikirim ke perangkat.';
-        } else if (actions.length && !deviceConnected) {
+        } else if (actions.length && !isBLEConnected()) {
             result += '\n\nBLE belum terhubung, jadi saran tidak dapat diterapkan dari sini.';
         }
         alert(result);
 
         // Mode simulasi tidak boleh mengirim perintah ke perangkat.
-        if (deviceConnected && !aiAudioSimulationMode) {
+        if (isBLEConnected() && !aiAudioSimulationMode) {
             actions.forEach(action => {
                 if (confirm(action.prompt)) {
                     action.commands.forEach(command => {
@@ -1486,7 +1511,7 @@ let specData={1:Array(7).fill(0),2:Array(7).fill(0),3:Array(7).fill(0),4:Array(7
 function initSpectrum(){specCanvas=document.getElementById('spectrumCanvas');if(!specCanvas)return;specCtx=specCanvas.getContext('2d');resizeSpecCanvas();if(!specCanvas.dataset.resizeBound){window.addEventListener('resize',resizeSpecCanvas);specCanvas.dataset.resizeBound='1';}if(specAnimFrame)cancelAnimationFrame(specAnimFrame);const b=document.getElementById('spec-sim-btn');if(b)b.classList.toggle('active',specSimMode);renderSpectrumLoop();}
 function resizeSpecCanvas(){if(!specCanvas)return;const r=specCanvas.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;const d=window.devicePixelRatio||1;specCanvas.width=Math.round(r.width*d);specCanvas.height=Math.round(r.height*d);specCanvas.style.width=r.width+'px';specCanvas.style.height=r.height+'px';specCtx.setTransform(d,0,0,d,0,0);}
 function stopSpectrum(){if(specAnimFrame)cancelAnimationFrame(specAnimFrame);specAnimFrame=null;specCanvas=null;specCtx=null;}
-function renderSpectrumLoop(){if(!specCtx||!document.getElementById('page-spectrum')?.classList.contains('active')){specAnimFrame=null;return;}if(specSimMode&&!specFrozen)generateSimData();if(!specFrozen)for(let ch=1;ch<=4;ch++)for(let i=0;i<7;i++)specSmoothData[ch][i]=specSmoothData[ch][i]*specSmoothing+specData[ch][i]*(1-specSmoothing);drawSpectrum();const ble=document.getElementById('spec-ble');if(ble){ble.innerText=typeof deviceConnected!=='undefined'&&deviceConnected?'ON':'OFF';ble.style.color=typeof deviceConnected!=='undefined'&&deviceConnected?'var(--neon-green)':'var(--neon-red)';}specAnimFrame=requestAnimationFrame(renderSpectrumLoop);}
+function renderSpectrumLoop(){if(!specCtx||!document.getElementById('page-spectrum')?.classList.contains('active')){specAnimFrame=null;return;}if(specSimMode&&!specFrozen)generateSimData();if(!specFrozen)for(let ch=1;ch<=4;ch++)for(let i=0;i<7;i++)specSmoothData[ch][i]=specSmoothData[ch][i]*specSmoothing+specData[ch][i]*(1-specSmoothing);drawSpectrum();const ble=document.getElementById('spec-ble');if(ble){ble.innerText=typeof isBLEConnected()!=='undefined'&&isBLEConnected()?'ON':'OFF';ble.style.color=typeof isBLEConnected()!=='undefined'&&isBLEConnected()?'var(--neon-green)':'var(--neon-red)';}specAnimFrame=requestAnimationFrame(renderSpectrumLoop);}
 function generateSimData(){simTime+=.02;specData[1]=[10+Math.sin(simTime)*5,25+Math.sin(simTime*1.3)*10,50+Math.sin(simTime*.8)*15,70+Math.sin(simTime*1.1)*10,65+Math.sin(simTime*.9)*12,55+Math.sin(simTime*1.5)*15,30+Math.sin(simTime*2)*10];specData[2]=specData[1].map((v,i)=>Math.max(0,v+Math.sin(simTime*.7+i)*8));specData[3]=[40+Math.sin(simTime*1.2)*15,75+Math.sin(simTime*.9)*12,60+Math.sin(simTime*1.4)*10,20+Math.sin(simTime)*8,10+Math.sin(simTime*.8)*5,5,0];specData[4]=[80+Math.sin(simTime*.6)*15,70+Math.sin(simTime*.8)*12,30+Math.sin(simTime*1.1)*10,5,0,0,0];for(let ch=1;ch<=4;ch++)specData[ch]=specData[ch].map(v=>Math.max(0,Math.min(100,v)));}
 function freqToX(f,w,p){return p+(Math.log10(f)-Math.log10(20))/(Math.log10(20000)-Math.log10(20))*(w-p-10);}
 function drawSpectrum(){if(!specCtx||!specCanvas)return;const w=specCanvas.clientWidth,h=specCanvas.clientHeight;if(!w||!h)return;const l=35,t=10,b=22,r=10;specCtx.clearRect(0,0,w,h);specCtx.fillStyle='#03060a';specCtx.fillRect(0,0,w,h);specCtx.font='9px monospace';specCtx.strokeStyle='#1a2a40';specCtx.lineWidth=.5;specCtx.fillStyle='#4a5a7a';specCtx.textAlign='center';[20,50,100,200,500,1000,2000,5000,10000,20000].forEach(f=>{const x=freqToX(f,w,l);if(x>=l&&x<=w-r){specCtx.beginPath();specCtx.moveTo(x,t);specCtx.lineTo(x,h-b);specCtx.stroke();specCtx.fillText(f>=1000?(f/1000)+'k':String(f),x,h-5);}});specCtx.textAlign='right';[10,0,-10,-20,-30,-40,-50,-60].forEach(db=>{const y=h-b-(db-SPEC_DB_MIN)/(SPEC_DB_MAX-SPEC_DB_MIN)*(h-t-b);specCtx.strokeStyle=db===0?'rgba(255,255,255,.3)':'#1a2a40';specCtx.beginPath();specCtx.moveTo(l,y);specCtx.lineTo(w-r,y);specCtx.stroke();specCtx.fillStyle=db===0?'#fff':'#4a5a7a';specCtx.fillText(String(db),l-4,y+3);});for(let ch=4;ch>=1;ch--)if(specVisible[ch])drawSpecChannel(ch,w,h,l,t,b);updateSpecStats();}
