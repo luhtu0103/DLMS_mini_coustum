@@ -29,7 +29,7 @@ const scriptTag = '<script src="script.js"></script>';
 if (!html.includes(scriptTag)) {
   throw new Error('Could not find script.js tag in index.html');
 }
-html = html.replace(scriptTag, '<script src="native-ble-bundle.js"></script>\\n    ' + scriptTag);
+html = html.replace(scriptTag, '<script src="native-ble-bundle.js"></script>' + String.fromCharCode(10) + '    ' + scriptTag);
 fs.writeFileSync(htmlPath, html, 'utf8');
 
 console.log('Prepared Capacitor web assets:', fs.readdirSync(out).join(', '));
