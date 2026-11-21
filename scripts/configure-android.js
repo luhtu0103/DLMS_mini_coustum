@@ -10,7 +10,7 @@ let xml = fs.readFileSync(manifestPath, 'utf8');
 const permissions = [
   '<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />',
   '<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />',
-  '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />',
+  '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />',
   '<uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />',
   '<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />',
   '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
