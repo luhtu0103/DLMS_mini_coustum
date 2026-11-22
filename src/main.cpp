@@ -129,7 +129,7 @@ float processCompressor(float input, OutputChannel *out) {
   }
   float coeff = (gr_db > out->comp_envelope) ? out->comp_attack_coeff : out->comp_release_coeff;
   out->comp_envelope = coeff * out->comp_envelope + (1.0f - coeff) * gr_db;
-  return input * powf(10.0f, -out->comp_envelope / 20.0f);
+  return input * expf(-out->comp_envelope * 0.11512925465f); // envelope changes per sample; use single-precision exp
 }
 
 float processOutputChannel(OutputChannel *out, float sigL, float sigR, float master_linear, int ch_idx) {
