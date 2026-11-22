@@ -12,6 +12,7 @@ on:
       - 'manifest.json'
       - 'icon-192.png'
       - 'package.json'
+      - 'package-lock.json'
       - 'capacitor.config.json'
       - 'scripts/**'
       - 'native-ble-entry.js'
@@ -40,7 +41,7 @@ jobs:
           java-version: '21'
 
       - name: Install JavaScript dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Check JavaScript syntax
         run: |
