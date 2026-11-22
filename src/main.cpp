@@ -42,8 +42,8 @@ typedef struct {
   bool hpf_on; int hpf_slope; float hpf_freq;
   bool lpf_on; int lpf_slope; float lpf_freq;
   float peq_freq[3]; float peq_gain[3];
-  float gain_db; float delay_ms; bool is_mute; bool phase_180;
-  int routing; bool limiter_on; float limiter_thresh;
+  float gain_db; float gain_linear; float delay_ms; bool is_mute; bool phase_180;
+  int routing; bool limiter_on; float limiter_thresh; float limiter_linear;
   bool comp_on; float comp_thresh; float comp_ratio;
   float comp_attack_coeff; float comp_release_coeff; float comp_envelope;
   biquad_t hpf; biquad_t lpf; biquad_t peq[3];
@@ -53,12 +53,14 @@ OutputChannel out1, out2, out3, out4;
 
 typedef struct {
   float gain_db; bool is_mute;
-  float peq_freq; float peq_gain;
+  float peq_freq; float peq_gain; float gain_linear;
   biquad_t peq;
 } InputChannel;
 
 InputChannel inL, inR;
-float master_volume = 0.0;
+float master_volume = 0.0f;
+float master_linear_cached = 1.0f;
+portMUX_TYPE dspCoeffMux = portMUX_INITIALIZER_UNLOCKED;
 bool global_bypass = false;
 Preferences preferences;
 
@@ -68,6 +70,7 @@ int delay_write_pos[4] = {0, 0, 0, 0};
 volatile int gen_type = 0;
 float gen_freq = 1000.0;
 volatile float gen_level_db = -12.0f;
+volatile float gen_level_linear = 0.25118864f;
 float gen_phase = 0.0;
 float pink_b0=0, pink_b1=0, pink_b2=0, pink_b3=0, pink_b4=0, pink_b5=0, pink_b6=0;
 
@@ -85,33 +88,34 @@ int fft_sample_count = 0;
 // ==========================================
 // FUNGSI FILTER & DSP
 // ==========================================
+void publishBiquadCoefficients(biquad_t *dst, const biquad_t *src) {
+  portENTER_CRITICAL(&dspCoeffMux);
+  dst->b0=src->b0; dst->b1=src->b1; dst->b2=src->b2; dst->a1=src->a1; dst->a2=src->a2;
+  portEXIT_CRITICAL(&dspCoeffMux);
+}
 void calcBiquadHighpass(biquad_t *f, float freq, float Q) {
-  if(freq < 20) freq = 20; 
-  float w0 = 2.0 * M_PI * freq / SAMPLE_RATE; 
-  float alpha = sin(w0) / (2.0 * Q); float cosw0 = cos(w0); float a0 = 1.0 + alpha;
-  f->b0 = ((1.0 + cosw0) / 2.0) / a0; f->b1 = -(1.0 + cosw0) / a0; f->b2 = ((1.0 + cosw0) / 2.0) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha) / a0;
+  if(freq<20.0f)freq=20.0f;
+  const float w0=2.0f*(float)M_PI*freq/SAMPLE_RATE, alpha=sinf(w0)/(2.0f*Q), cw=cosf(w0), a0=1.0f+alpha;
+  biquad_t n={}; n.b0=((1.0f+cw)/2.0f)/a0; n.b1=-(1.0f+cw)/a0; n.b2=((1.0f+cw)/2.0f)/a0; n.a1=(-2.0f*cw)/a0; n.a2=(1.0f-alpha)/a0;
+  publishBiquadCoefficients(f,&n);
 }
-
 void calcBiquadLowpass(biquad_t *f, float freq, float Q) {
-  if(freq > 20000) freq = 20000; 
-  float w0 = 2.0 * M_PI * freq / SAMPLE_RATE; 
-  float alpha = sin(w0) / (2.0 * Q); float cosw0 = cos(w0); float a0 = 1.0 + alpha;
-  f->b0 = ((1.0 - cosw0) / 2.0) / a0; f->b1 = (1.0 - cosw0) / a0; f->b2 = ((1.0 - cosw0) / 2.0) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha) / a0;
+  if(freq<20.0f)freq=20.0f; if(freq>20000.0f)freq=20000.0f;
+  const float w0=2.0f*(float)M_PI*freq/SAMPLE_RATE, alpha=sinf(w0)/(2.0f*Q), cw=cosf(w0), a0=1.0f+alpha;
+  biquad_t n={}; n.b0=((1.0f-cw)/2.0f)/a0; n.b1=(1.0f-cw)/a0; n.b2=((1.0f-cw)/2.0f)/a0; n.a1=(-2.0f*cw)/a0; n.a2=(1.0f-alpha)/a0;
+  publishBiquadCoefficients(f,&n);
 }
-
 void calcBiquadPEQ(biquad_t *f, float freq, float gain_db, float Q) {
-  if(freq < 20) freq = 20; if(freq > 20000) freq = 20000; 
-  float A = pow(10.0, gain_db / 40.0); 
-  float w0 = 2.0 * M_PI * freq / SAMPLE_RATE; 
-  float alpha = sin(w0) / (2.0 * Q); float cosw0 = cos(w0); float a0 = 1.0 + alpha / A;
-  f->b0 = (1.0 + alpha * A) / a0; f->b1 = (-2.0 * cosw0) / a0; f->b2 = (1.0 - alpha * A) / a0; 
-  f->a1 = (-2.0 * cosw0) / a0; f->a2 = (1.0 - alpha / A) / a0;
+  if(freq<20.0f)freq=20.0f; if(freq>20000.0f)freq=20000.0f;
+  const float A=powf(10.0f,gain_db/40.0f), w0=2.0f*(float)M_PI*freq/SAMPLE_RATE, alpha=sinf(w0)/(2.0f*Q), cw=cosf(w0), a0=1.0f+alpha/A;
+  biquad_t n={}; n.b0=(1.0f+alpha*A)/a0; n.b1=(-2.0f*cw)/a0; n.b2=(1.0f-alpha*A)/a0; n.a1=(-2.0f*cw)/a0; n.a2=(1.0f-alpha/A)/a0;
+  publishBiquadCoefficients(f,&n);
 }
 
 float processBiquad(float input, biquad_t *f) {
-  float y = (f->b0 * input) + (f->b1 * f->x1) + (f->b2 * f->x2) - (f->a1 * f->y1) - (f->a2 * f->y2);
+  float b0,b1,b2,a1,a2;
+  portENTER_CRITICAL(&dspCoeffMux); b0=f->b0; b1=f->b1; b2=f->b2; a1=f->a1; a2=f->a2; portEXIT_CRITICAL(&dspCoeffMux);
+  float y = (b0 * input) + (b1 * f->x1) + (b2 * f->x2) - (a1 * f->y1) - (a2 * f->y2);
   f->x2 = f->x1; f->x1 = input; f->y2 = f->y1; f->y1 = y; 
   return y;
 }
@@ -137,7 +141,7 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
   else if (out->routing == 2) o = (sigL + sigR) * 0.5f;
   else o = 0.0f; // routing 3 = none/silence
   
-  o *= pow(10.0, out->gain_db / 20.0);
+  o *= out->gain_linear;
   
   if (!global_bypass) {
     if (out->hpf_on) { o = processBiquad(o, &out->hpf); if (out->hpf_slope == 24) o = processBiquad(o, &out->hpf); }
@@ -145,7 +149,7 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
     o = processBiquad(o, &out->peq[0]); o = processBiquad(o, &out->peq[1]); o = processBiquad(o, &out->peq[2]);
     o = processCompressor(o, out);
     if (out->limiter_on) { 
-      float lim = pow(10.0, out->limiter_thresh / 20.0); 
+      float lim = out->limiter_linear; 
       if (o > lim) o = lim; if (o < -lim) o = -lim; 
     }
   }
@@ -215,6 +219,7 @@ void loadFromNVS() {
   preferences.begin("dlms_v11", true);
   if (preferences.isKey("m_vol")) {
     master_volume = preferences.getFloat("m_vol", 0.0f);
+    master_linear_cached = powf(10.0f, master_volume / 20.0f);
     global_bypass = preferences.getBool("bypass", false);
     for (int i = 1; i <= 4; i++) {
       OutputChannel *out = (i == 1) ? &out1 : (i == 2) ? &out2 : (i == 3) ? &out3 : &out4;
@@ -222,10 +227,12 @@ void loadFromNVS() {
       out->is_mute = preferences.getBool((p + "mute").c_str(), out->is_mute);
       out->phase_180 = preferences.getBool((p + "phase").c_str(), out->phase_180);
       out->gain_db = preferences.getFloat((p + "gain").c_str(), out->gain_db);
+      out->gain_linear = powf(10.0f, out->gain_db / 20.0f);
       out->delay_ms = preferences.getFloat((p + "delay").c_str(), out->delay_ms);
       out->routing = preferences.getInt((p + "routing").c_str(), out->routing);
       out->limiter_on = preferences.getBool((p + "lim_on").c_str(), out->limiter_on);
       out->limiter_thresh = preferences.getFloat((p + "lim_t").c_str(), out->limiter_thresh);
+      out->limiter_linear = powf(10.0f, out->limiter_thresh / 20.0f);
       out->hpf_on = preferences.getBool((p + "hpf_on").c_str(), out->hpf_on);
       out->hpf_freq = preferences.getFloat((p + "hpf_f").c_str(), out->hpf_freq);
       out->hpf_slope = preferences.getInt((p + "hpf_slope").c_str(), out->hpf_slope);
@@ -248,11 +255,13 @@ void loadFromNVS() {
       out->comp_envelope = 0.0f;
     }
     inL.gain_db = preferences.getFloat("inL_gain", inL.gain_db);
+    inL.gain_linear = powf(10.0f, inL.gain_db / 20.0f);
     inL.is_mute = preferences.getBool("inL_mute", inL.is_mute);
     inL.peq_freq = preferences.getFloat("inL_peqf", inL.peq_freq);
     inL.peq_gain = preferences.getFloat("inL_peqg", inL.peq_gain);
     calcBiquadPEQ(&inL.peq, inL.peq_freq, inL.peq_gain, 1.0f);
     inR.gain_db = preferences.getFloat("inR_gain", inR.gain_db);
+    inR.gain_linear = powf(10.0f, inR.gain_db / 20.0f);
     inR.is_mute = preferences.getBool("inR_mute", inR.is_mute);
     inR.peq_freq = preferences.getFloat("inR_peqf", inR.peq_freq);
     inR.peq_gain = preferences.getFloat("inR_peqg", inR.peq_gain);
@@ -284,20 +293,20 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
     if (cmd == "SIG_GEN") { if (val != 0 && val != 1 && val != 2) return; gen_type = (int)val; if(gen_type==2) gen_phase=0.0; }
     else if (cmd == "SIG_FREQ") { if (val < 20 || val > 20000) return; gen_freq = val; gen_phase = 0.0; }
-    else if (cmd == "TONE_LEVEL") { if (val < -60 || val > 0) return; gen_level_db = val; }
+    else if (cmd == "TONE_LEVEL") { if (val < -60 || val > 0) return; gen_level_db = val; gen_level_linear = powf(10.0f, val / 20.0f); }
     else if (cmd == "SAVE_TO_NVS") { if (val == 1) saveToNVS(); }
     else if (cmd == "LOAD_FROM_NVS") { if (val == 1) loadFromNVS(); }
-    else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; }
+    else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; master_linear_cached = powf(10.0f, val / 20.0f); }
     else if (cmd == "ALL_BYPASS") { global_bypass = (val > 0); }
     else if (cmd.startsWith("IN_")) {
       if ((cmd.endsWith("_GAIN") || cmd.endsWith("_PEQGAIN")) && (val < -20 || val > 20)) return;
       if (cmd.endsWith("_PEQFREQ") && (val < 20 || val > 20000)) return;
       if (cmd.endsWith("_MUTE") && val != 0 && val != 1) return;
-      if (cmd == "IN_L_GAIN") inL.gain_db = val;
+      if (cmd == "IN_L_GAIN") { inL.gain_db = val; inL.gain_linear = powf(10.0f, val / 20.0f); }
       else if (cmd == "IN_L_PEQFREQ") { inL.peq_freq = val; calcBiquadPEQ(&inL.peq, val, inL.peq_gain, 1.0); }
       else if (cmd == "IN_L_PEQGAIN") { inL.peq_gain = val; calcBiquadPEQ(&inL.peq, inL.peq_freq, val, 1.0); }
       else if (cmd == "IN_L_MUTE") inL.is_mute = (val > 0);
-      else if (cmd == "IN_R_GAIN") inR.gain_db = val;
+      else if (cmd == "IN_R_GAIN") { inR.gain_db = val; inR.gain_linear = powf(10.0f, val / 20.0f); }
       else if (cmd == "IN_R_PEQFREQ") { inR.peq_freq = val; calcBiquadPEQ(&inR.peq, val, inR.peq_gain, 1.0); }
       else if (cmd == "IN_R_PEQGAIN") { inR.peq_gain = val; calcBiquadPEQ(&inR.peq, inR.peq_freq, val, 1.0); }
       else if (cmd == "IN_R_MUTE") inR.is_mute = (val > 0);
@@ -319,7 +328,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       if ((p == "HPF_ON" || p == "LPF_ON" || p == "COMP_ON" || p == "LIMIT_ON" || p == "MUTE" || p == "PHASE") && val != 0 && val != 1) return;
       if (p == "ROUTING" && (val < 0 || val > 3 || floorf(val) != val)) return;
 
-      if (p == "GAIN") out->gain_db = val;
+      if (p == "GAIN") { out->gain_db = val; out->gain_linear = powf(10.0f, val / 20.0f); }
       else if (p == "DELAY") out->delay_ms = val;
       else if (p == "MUTE") out->is_mute = (val > 0);
       else if (p == "PHASE") out->phase_180 = (val > 0);
@@ -341,7 +350,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       else if (p == "COMP_ATK") out->comp_attack_coeff = expf(-1.0f / (val * 48.0f));
       else if (p == "COMP_REL") out->comp_release_coeff = expf(-1.0f / (val * 48.0f));
       else if (p == "LIMIT_ON") out->limiter_on = (val > 0);
-      else if (p == "LIMIT") out->limiter_thresh = val;
+      else if (p == "LIMIT") { out->limiter_thresh = val; out->limiter_linear = powf(10.0f, val / 20.0f); }
        else if (p == "ROUTING") out->routing = constrain((int)val, 0, 3);
     }
     else if (cmd.startsWith("ROUTING_OUT")) {
@@ -385,7 +394,7 @@ void audioProcessingTask(void *parameter) {
   while (true) {
     i2s_channel_read(rx_handle, rx_buf, sizeof(rx_buf), &bytes_read, portMAX_DELAY);
     int samples = bytes_read / sizeof(int16_t);
-    float master_linear = pow(10.0, master_volume / 20.0);
+    float master_linear = master_linear_cached;
     
     int64_t sumL = 0, sumR = 0;
     for (int i = 0; i < samples; i += 2) { sumL += (int64_t)rx_buf[i]*rx_buf[i]; sumR += (int64_t)rx_buf[i+1]*rx_buf[i+1]; }
@@ -416,15 +425,15 @@ void audioProcessingTask(void *parameter) {
         if (gen_phase >= 2.0f * M_PI) gen_phase -= 2.0f * M_PI;
       }
       
-      if (gen_type != 0) { const float toneScale = powf(10.0f, gen_level_db / 20.0f); rawL *= toneScale; rawR *= toneScale; }
+      if (gen_type != 0) { const float toneScale = gen_level_linear; rawL *= toneScale; rawR *= toneScale; }
 
       if (fft_sample_count < FFT_SIZE) {
         fft_buffer[fft_sample_count] = (rawL + rawR) * 0.5f;
         if (++fft_sample_count == FFT_SIZE) { processFFT(); fft_sample_count = 0; }
       }
       
-      float sampL = inL.is_mute ? 0 : processBiquad(rawL * pow(10.0, inL.gain_db/20.0), &inL.peq);
-      float sampR = inR.is_mute ? 0 : processBiquad(rawR * pow(10.0, inR.gain_db/20.0), &inR.peq);
+      float sampL = inL.is_mute ? 0 : processBiquad(rawL * inL.gain_linear, &inL.peq);
+      float sampR = inR.is_mute ? 0 : processBiquad(rawR * inR.gain_linear, &inR.peq);
       
       float o1 = processOutputChannel(&out1, sampL, sampR, master_linear, 0);
       float o2 = processOutputChannel(&out2, sampL, sampR, master_linear, 1);
@@ -515,14 +524,15 @@ void setup() {
   
   for(int i=1; i<=4; i++) {
     OutputChannel *out = (i==1)?&out1:(i==2)?&out2:(i==3)?&out3:&out4;
-    out->delay_ms = 0.0; out->hpf_slope = 24; out->lpf_slope = 24; out->comp_on = false; out->comp_thresh = -20.0; out->comp_ratio = 4.0;
+    out->delay_ms = 0.0f; out->hpf_slope = 24; out->lpf_slope = 24; out->comp_on = false; out->comp_thresh = -20.0f; out->comp_ratio = 4.0f;
+    out->gain_db = 0.0f; out->gain_linear = 1.0f; out->limiter_thresh = 0.0f; out->limiter_linear = 1.0f;
     out->comp_attack_coeff = expf(-1.0f / (10.0 * 48.0f)); out->comp_release_coeff = expf(-1.0f / (200.0 * 48.0f));
     calcBiquadHighpass(&out->hpf, 20, 0.707); calcBiquadLowpass(&out->lpf, 20000, 0.707);
     out->peq_freq[0] = 100.0f; out->peq_freq[1] = 1000.0f; out->peq_freq[2] = 5000.0f;
     for(int j=0; j<3; j++) { out->peq_gain[j] = 0.0f; calcBiquadPEQ(&out->peq[j], out->peq_freq[j], out->peq_gain[j], 1.0); }
   }
-  inL.gain_db = 0.0f; inL.is_mute = false; inL.peq_freq = 1000.0f; inL.peq_gain = 0.0f;
-  inR.gain_db = 0.0f; inR.is_mute = false; inR.peq_freq = 1000.0f; inR.peq_gain = 0.0f;
+  inL.gain_db = 0.0f; inL.gain_linear = 1.0f; inL.is_mute = false; inL.peq_freq = 1000.0f; inL.peq_gain = 0.0f;
+  inR.gain_db = 0.0f; inR.gain_linear = 1.0f; inR.is_mute = false; inR.peq_freq = 1000.0f; inR.peq_gain = 0.0f;
   calcBiquadPEQ(&inL.peq, inL.peq_freq, inL.peq_gain, 1.0f);
   calcBiquadPEQ(&inR.peq, inR.peq_freq, inR.peq_gain, 1.0f);
 
