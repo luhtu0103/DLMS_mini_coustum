@@ -33,8 +33,8 @@
         };
 
         let inputState = {
-            L: { gain: 0, peqFreq: 1000, peqGain: 0 },
-            R: { gain: 0, peqFreq: 1000, peqGain: 0 }
+            L: { gain: 0, peqFreq: 1000, peqGain: 0, isMute: false },
+            R: { gain: 0, peqFreq: 1000, peqGain: 0, isMute: false }
         };
 
         function editDeviceName() {
@@ -80,6 +80,8 @@
                 }
                 document.body.classList.add('ble-active');
                 updateBLEStatus(true);
+                // Sinkronkan seluruh state UI hanya sekali saat koneksi baru berhasil.
+                await syncFullStateToDevice();
                 alert('✅ Terhubung ke ' + (bleDevice.name || 'ESP32-S3'));
             } catch (error) {
                 console.error('Error BLE:', error);
@@ -541,6 +543,20 @@
             sendBLEData('IN_' + input + '_GAIN,' + st.gain);
             sendBLEData('IN_' + input + '_PEQFREQ,' + st.peqFreq);
             sendBLEData('IN_' + input + '_PEQGAIN,' + st.peqGain);
+            sendBLEData('IN_' + input + '_MUTE,' + (st.isMute ? 1 : 0));
+        }
+
+        // Full UI -> firmware sync. loadStateToUI() remains presentation-only;
+        // switching pages/tabs must never write DSP parameters over BLE.
+        async function syncFullStateToDevice() {
+            if (!isBLEConnected()) return;
+            for (let i = 1; i <= 4; i++) sendOutputStateToDevice(i, globalState[i]);
+            sendInputStateToDevice('L', inputState.L);
+            sendInputStateToDevice('R', inputState.R);
+            const master = document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');
+            if (master) sendBLEData('MASTER,' + Number(master.value));
+            const bypass = document.querySelector('.preset-btn.bypass.active');
+            sendBLEData('ALL_BYPASS,' + (bypass ? 1 : 0));
         }
 
         function resetToDefault() {
