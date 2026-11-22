@@ -555,8 +555,10 @@
             sendInputStateToDevice('R', inputState.R);
             const master = document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');
             if (master) sendBLEData('MASTER,' + Number(master.value));
-            const bypass = document.querySelector('.preset-btn.bypass.active');
-            sendBLEData('ALL_BYPASS,' + (bypass ? 1 : 0));
+            const bypassBtn = document.getElementById('bypass-all-btn');
+            const bypassOn = !!(bypassBtn && bypassBtn.classList.contains('active')) ||
+                !!document.querySelector('.preset-btn.bypass.active');
+            sendBLEData('ALL_BYPASS,' + (bypassOn ? 1 : 0));
         }
 
         function resetToDefault() {
@@ -580,7 +582,12 @@
         function loadInputUI(ch) { let st = inputState[ch]; document.getElementById('inputGain').value = st.gain; document.getElementById('inputGainVal').innerText = st.gain + ' dB'; document.getElementById('in_peq_freq').value = st.peqFreq; document.getElementById('in_peq_freqVal').innerText = (st.peqFreq >= 1000) ? (st.peqFreq/1000).toFixed(1)+'k' : st.peqFreq; document.getElementById('in_peq_gain').value = st.peqGain; document.getElementById('in_peq_gainVal').innerText = st.peqGain; }
         function updateInputVal(id, unit) { let val = document.getElementById(id).value; document.getElementById(id + 'Val').innerText = val + ' ' + unit; sendBLEData('IN_' + currentInput + '_GAIN,' + val); inputState[currentInput].gain = val; }
         function updateInputGraph() { let f = document.getElementById('in_peq_freq').value; let g = document.getElementById('in_peq_gain').value; document.getElementById('in_peq_freqVal').innerText = (f >= 1000) ? (f/1000).toFixed(1)+'k' : f; document.getElementById('in_peq_gainVal').innerText = g; sendBLEData('IN_' + currentInput + '_PEQFREQ,' + f); sendBLEData('IN_' + currentInput + '_PEQGAIN,' + g); inputState[currentInput].peqFreq = f; inputState[currentInput].peqGain = g; }
-        function toggleInputMute(btn) { btn.classList.toggle('on'); let isOn = btn.classList.contains('on'); sendBLEData('IN_' + currentInput + '_MUTE,' + (isOn ? 0 : 1)); }
+        function toggleInputMute(btn) {
+            btn.classList.toggle('on');
+            const isMute = !btn.classList.contains('on');
+            inputState[currentInput].isMute = isMute;
+            sendBLEData('IN_' + currentInput + '_MUTE,' + (isMute ? 1 : 0));
+        }
 
         function updateVal(elementId, unit) { 
             let slider = document.getElementById(elementId); 
