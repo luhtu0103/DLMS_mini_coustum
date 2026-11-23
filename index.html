@@ -51,9 +51,15 @@
 
                 <!-- GRID 3x3 MENU -->
                 <div class="quick-grid">
-<button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button><button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button><button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
-<button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button><button class="quick-btn" onclick="showPage('page-spectrum')">SPECTRUM</button><button class="quick-btn" onclick="showPage('page-notes')">NOTES</button>
-<button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button><button class="quick-btn" onclick="showToast('Coming Soon')">-</button><button class="quick-btn" onclick="showToast('Coming Soon')">-</button>
+<button class="quick-btn" onclick="showPage('page-quick')">VOLUME</button>
+<button class="quick-btn" onclick="showPage('page-presets')">EFFECTS</button>
+<button class="quick-btn" onclick="openRTAPage()">RTA</button>
+<button class="quick-btn" onclick="showPage('page-monitor')">MONITOR</button>
+<button class="quick-btn" onclick="showPage('page-spectrum')">SPECTRUM</button>
+<button class="quick-btn" onclick="showPage('page-test-tone')">TEST TONE</button>
+<button class="quick-btn" onclick="showPage('page-system')">SYSTEM</button>
+<button class="quick-btn" onclick="showPage('page-guide')">GUIDE</button>
+<button class="quick-btn" onclick="saveBackupLocal()">BACKUP</button>
 </div>
             </div>
 
@@ -144,8 +150,8 @@
 
         <div class="status-bar">
             <div class="status-item"><div class="status-dot" id="bleStatusDot"></div> <span id="bleStatusText">BLE: DISCONNECTED</span></div>
-            <div class="status-item">SAMPLE RATE: 48 kHz</div>
-            <div class="status-item">CPU LOAD: 12%</div>
+            <div class="status-item">AUDIO: DEMO</div>
+            <div class="status-item">DSP: STANDBY</div>
         </div>
     </div>
 

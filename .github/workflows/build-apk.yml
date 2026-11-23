@@ -2,6 +2,21 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'style.css'
+      - 'script.js'
+      - 'manifest.json'
+      - 'icon-192.png'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'scripts/**'
+      - 'native-ble-entry.js'
+      - '.github/workflows/build-apk.yml'
   push:
     branches:
       - main
