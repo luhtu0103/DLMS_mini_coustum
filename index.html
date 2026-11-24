@@ -57,44 +57,17 @@
 </div>
             </div>
 
-            <div class="graph-panel" id="main-graph-panel">
-                <div class="graph-info-bar">
-                    <span class="mode-switch" id="graph-mode-toggle" onclick="toggleGraphMode()">MODE: RTA</span>
-                    <div style="display:flex; gap:8px;">
-                        <div class="legend-item" onclick="selectDashChannel(1)"><div class="legend-color" style="background:var(--color-out1);"></div>O1</div>
-                        <div class="legend-item" onclick="selectDashChannel(2)"><div class="legend-color" style="background:var(--color-out2);"></div>O2</div>
-                        <div class="legend-item" onclick="selectDashChannel(3)"><div class="legend-color" style="background:var(--color-out3);"></div>O3</div>
-                        <div class="legend-item" onclick="selectDashChannel(4)"><div class="legend-color" style="background:var(--color-out4);"></div>O4</div>
-                    </div>
+            <div class="graph-panel osc-container" id="main-graph-panel">
+                <div class="osc-header">
+                    <span>OSCILLOSCOPE 4-OUT</span>
+                    <button id="osc-freeze-btn" class="osc-freeze-btn" onclick="toggleOscFreeze()">❄ FREEZE</button>
                 </div>
-                <div class="svg-container">
-                    <svg id="dash-svg" viewBox="0 0 200 100" preserveAspectRatio="none" width="100%" height="100%">
-                        <line x1="0" y1="20" x2="200" y2="20" class="grid-line"/><line x1="0" y1="40" x2="200" y2="40" class="grid-line"/><line x1="0" y1="60" x2="200" y2="60" class="grid-line"/><line x1="0" y1="80" x2="200" y2="80" class="grid-line"/>
-                        <line x1="15" y1="0" x2="15" y2="100" class="grid-line-vert"/><line x1="40" y1="0" x2="40" y2="100" class="grid-line-vert"/><line x1="65" y1="0" x2="65" y2="100" class="grid-line-vert"/><line x1="95" y1="0" x2="95" y2="100" class="grid-line-vert"/><line x1="125" y1="0" x2="125" y2="100" class="grid-line-vert"/><line x1="160" y1="0" x2="160" y2="100" class="grid-line-vert"/><line x1="185" y1="0" x2="185" y2="100" class="grid-line-vert"/>
-                        <text x="15" y="98" class="axis-text" text-anchor="middle">50</text><text x="40" y="98" class="axis-text" text-anchor="middle">100</text><text x="65" y="98" class="axis-text" text-anchor="middle">250</text><text x="95" y="98" class="axis-text" text-anchor="middle">1k</text><text x="125" y="98" class="axis-text" text-anchor="middle">3k</text><text x="160" y="98" class="axis-text" text-anchor="middle">8k</text><text x="185" y="98" class="axis-text" text-anchor="middle">16k</text>
-                        <line x1="0" y1="50" x2="200" y2="50" stroke="#ffffff" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.3"/>
-
-                        <g id="dash-rta-bars" opacity="0.4">
-                            <rect x="5" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="32" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="59" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="86" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="113" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="140" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                            <rect x="167" y="100" width="22" height="0" fill="var(--neon-blue)" />
-                        </g>
-
-                        <path id="dash-osc-line" d="M 0 50 L 200 50" fill="none" stroke="var(--neon-green)" stroke-width="2" opacity="0" />
-
-                        <path id="dash-path-out1" d="M 0 50 L 200 50" fill="none" stroke="var(--color-out1)" stroke-width="1.5" opacity="0.3" style="transition: stroke-width 0.2s, opacity 0.2s;"/>
-                        <path id="dash-path-out2" d="M 0 50 L 200 50" fill="none" stroke="var(--color-out2)" stroke-width="1.5" opacity="0.3" style="transition: stroke-width 0.2s, opacity 0.2s;"/>
-                        <path id="dash-path-out3" d="M 0 50 L 200 50" fill="none" stroke="var(--color-out3)" stroke-width="1.5" opacity="0.3" style="transition: stroke-width 0.2s, opacity 0.2s;"/>
-                        <path id="dash-path-out4" d="M 0 50 L 200 50" fill="none" stroke="var(--color-out4)" stroke-width="1.5" opacity="0.3" style="transition: stroke-width 0.2s, opacity 0.2s;"/>
-                        
-                        <circle id="node-dash-p1" cx="40" cy="50" r="3" fill="#fff" opacity="0" style="cursor:pointer; z-index:10;" onmousedown="startDrag(event, 1)" ontouchstart="startDrag(event, 1)"/>
-                        <circle id="node-dash-p2" cx="100" cy="50" r="3" fill="#fff" opacity="0" style="cursor:pointer; z-index:10;" onmousedown="startDrag(event, 2)" ontouchstart="startDrag(event, 2)"/>
-                        <circle id="node-dash-p3" cx="150" cy="50" r="3" fill="#fff" opacity="0" style="cursor:pointer; z-index:10;" onmousedown="startDrag(event, 3)" ontouchstart="startDrag(event, 3)"/>
-                    </svg>
+                <canvas id="osc-canvas" aria-label="Oscilloscope output 1 through 4"></canvas>
+                <div class="osc-legend">
+                    <button class="osc-legend-item" data-osc-ch="1" onclick="toggleOscChannel(1)"><span class="osc-dot out1"></span>OUT1</button>
+                    <button class="osc-legend-item" data-osc-ch="2" onclick="toggleOscChannel(2)"><span class="osc-dot out2"></span>OUT2</button>
+                    <button class="osc-legend-item" data-osc-ch="3" onclick="toggleOscChannel(3)"><span class="osc-dot out3"></span>OUT3</button>
+                    <button class="osc-legend-item" data-osc-ch="4" onclick="toggleOscChannel(4)"><span class="osc-dot out4"></span>OUT4</button>
                 </div>
             </div>
 
