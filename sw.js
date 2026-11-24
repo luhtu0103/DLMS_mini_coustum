@@ -1,52 +1,63 @@
-// DLMS Mini Service Worker - Version 7 (network-first, version-aware offline cache)
-const CACHE_NAME = 'dlms-v7';
+// DLMS Mini Service Worker - Version 8
+const CACHE_NAME = 'dlms-v8';
 const BASE_PATH = '/DLMS_mini_coustum/';
-const urlsToCache = [
+const ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html',
-  BASE_PATH + 'style.css?v=20261124-audit1',
-  BASE_PATH + 'script.js?v=20261124-2',
-  BASE_PATH + 'manifest.json',
-  BASE_PATH + 'icon-192.png'
+  BASE_PATH + 'style.css?v=20261124-fix2',
+  BASE_PATH + 'script.js?v=20261124-fix2',
+  BASE_PATH + 'manifest.json'
 ];
 
 self.addEventListener('install', event => {
-  console.log('[SW] Installing:', CACHE_NAME);
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    // One missing optional resource must not prevent the whole worker installing.
+    await Promise.all(ASSETS.map(async url => {
+      try {
+        const response = await fetch(url, { cache: 'reload' });
+        if (response.ok) await cache.put(url, response);
+      } catch (error) {
+        console.warn('[SW] Precache skipped:', url, error);
+      }
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => Promise.all(
-      cacheNames.map(cacheName => cacheName !== CACHE_NAME ? caches.delete(cacheName) : Promise.resolve())
-    )).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter(key => key.startsWith('dlms-') && key !== CACHE_NAME)
+      .map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
-// Network-first for fresh content; ignore query strings only as an offline fallback.
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-
-  event.respondWith(
-    fetch(event.request).then(response => {
-      if (response && response.status === 200) {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+  const request = event.request;
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request);
+      if (response && response.ok && new URL(request.url).origin === self.location.origin) {
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, response.clone()).catch(() => {});
       }
       return response;
-    }).catch(() => caches.match(event.request, { ignoreSearch: true }).then(cached => {
+    } catch (error) {
+      const cached = await caches.match(request, { ignoreSearch: true });
       if (cached) return cached;
-      if (event.request.mode === 'navigate') {
-        return caches.match(BASE_PATH + 'index.html');
+      if (request.mode === 'navigate') {
+        const shell = await caches.match(BASE_PATH + 'index.html');
+        if (shell) return shell;
       }
       return new Response('Offline: resource is not cached.', {
         status: 503,
         statusText: 'Service Unavailable',
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
       });
-    }))
-  );
+    }
+  })());
 });
