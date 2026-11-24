@@ -240,15 +240,52 @@
 
         function handleBLEMessage(event) {
             const text = new TextDecoder().decode(event.target.value).trim();
+            if (text.startsWith('ST:')) {
+                const parts = text.split(':');
+                if (parts.length !== 4) return;
+                const group = parts[1], key = parts[2], value = Number(parts[3]);
+                if (!Number.isFinite(value)) return;
+                const boolValue = value >= 0.5;
+                const outMatch = /^O([1-4])$/.exec(group);
+                if (outMatch) {
+                    const st = globalState[Number(outMatch[1])];
+                    const map = {HO:'hpfOn',HF:'hpfFreq',HS:'hpfSlope',LO:'lpfOn',LF:'lpfFreq',LS:'lpfSlope',P1F:'p1f',P1G:'p1g',P2F:'p2f',P2G:'p2g',P3F:'p3f',P3G:'p3g',GF:'gain',DY:'delay',LM:'limitOn',LT:'limit',CO:'compOn',CT:'compThresh',CR:'compRatio',CA:'compAtk',CE:'compRel',MU:'isMute',PH:'phase180',RT:'routing'};
+                    const field = map[key];
+                    if (!field) return;
+                    st[field] = ['hpfOn','lpfOn','limitOn','compOn','isMute','phase180'].includes(field) ? boolValue : (['hpfSlope','lpfSlope','routing','compAtk','compRel'].includes(field) ? Math.round(value) : value);
+                    if (Number(outMatch[1]) === currentOut) loadStateToUI(currentOut);
+                    syncDashboardUI();
+                } else if (group === 'IL' || group === 'IR') {
+                    const ch = group === 'IL' ? 'L' : 'R', st = inputState[ch];
+                    const map = {GF:'gain',PF:'peqFreq',PG:'peqGain',MU:'isMute'};
+                    if (!map[key]) return;
+                    st[map[key]] = key === 'MU' ? boolValue : value;
+                    if (currentInput === ch) {
+                        loadInputUI(ch);
+                        const muteBtn = document.querySelector('#page-input-setting .util-btn.mute');
+                        if (muteBtn) muteBtn.classList.toggle('on', !st.isMute);
+                    }
+                } else if (group === 'SYS') {
+                    if (key === 'MV') {
+                        const master = document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');
+                        if (master) { master.value = value; const label = document.getElementById(master.id + 'Val'); if (label) label.innerText = value + ' dB'; }
+                    } else if (key === 'BY') {
+                        document.querySelectorAll('#bypass-all-btn, .preset-btn.bypass').forEach(btn => btn.classList.toggle('active', boolValue));
+                    }
+                }
+                return;
+            }
             if (text.startsWith('STATUS:')) {
                 const status = text.slice(7).trim();
                 const messages = {
                     SAVE_OK: '✓ Parameter DSP tersimpan di NVS ESP32.',
                     SAVE_FAIL: '❌ Gagal menyimpan parameter ke NVS ESP32.',
-                    LOAD_OK: '✓ Parameter berhasil dimuat dari NVS ESP32. Tampilan aplikasi mungkin perlu diselaraskan ulang.',
+                    LOAD_OK: '✓ Parameter dimuat dari NVS ESP32. Menyelaraskan tampilan…',
                     LOAD_FAIL: '❌ Data NVS tidak tersedia atau gagal dibaca.'
                 };
                 if (messages[status]) showToast(messages[status]);
+                if (status === 'LOAD_OK') sendBLEData('GET_STATE,1');
+                if (status === 'STATE_DONE') showToast('✓ Tampilan aplikasi sudah diselaraskan dengan ESP32.');
                 return;
             }
             if (text.startsWith('INFO:')) {
