@@ -25,7 +25,7 @@ for (const file of [...required, ...optional]) {
 // Load the generated native BLE adapter only in the packaged Android app.
 const htmlPath = path.join(out, 'index.html');
 let html = fs.readFileSync(htmlPath, 'utf8');
-const scriptTagMatch = html.match(/<script src="script\\.js(?:\\?[^"]*)?"><\\/script>/);
+const scriptTagMatch = html.match(/<script src="script\.js(?:\?[^"]*)?"><\/script>/);
 if (!scriptTagMatch) {
   throw new Error('Could not find script.js tag in index.html');
 }
