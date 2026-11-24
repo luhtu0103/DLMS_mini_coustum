@@ -176,6 +176,12 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
 // ==========================================
 // NVS SAVE / LOAD
 // ==========================================
+// Guard persisted floating-point values before they reach DSP calculations.
+static float safeNvsFloat(float value, float fallback, float minValue, float maxValue) {
+  if (!isfinite(value)) value = fallback;
+  return fminf(maxValue, fmaxf(minValue, value));
+}
+
 void saveToNVS() {
   if (!preferences.begin("dlms_v11", false)) {
     Serial.println("❌ NVS open for write failed");
@@ -228,7 +234,7 @@ void loadFromNVS() {
     return;
   }
   if (preferences.isKey("m_vol")) {
-    master_volume = preferences.getFloat("m_vol", 0.0f);
+    master_volume = safeNvsFloat(preferences.getFloat("m_vol", 0.0f), 0.0f, -60.0f, 0.0f);
     master_linear_cached = powf(10.0f, master_volume / 20.0f);
     global_bypass = preferences.getBool("bypass", false);
     for (int i = 1; i <= 4; i++) {
@@ -236,45 +242,45 @@ void loadFromNVS() {
       String p = "o" + String(i) + "_";
       out->is_mute = preferences.getBool((p + "mute").c_str(), out->is_mute);
       out->phase_180 = preferences.getBool((p + "phase").c_str(), out->phase_180);
-      out->gain_db = preferences.getFloat((p + "gain").c_str(), out->gain_db);
+      out->gain_db = safeNvsFloat(preferences.getFloat((p + "gain").c_str(), out->gain_db), out->gain_db, -60.0f, 12.0f);
       out->gain_linear = powf(10.0f, out->gain_db / 20.0f);
-      out->delay_ms = preferences.getFloat((p + "delay").c_str(), out->delay_ms);
-      out->routing = preferences.getInt((p + "routing").c_str(), out->routing);
+      out->delay_ms = safeNvsFloat(preferences.getFloat((p + "delay").c_str(), out->delay_ms), out->delay_ms, 0.0f, 10.0f);
+      out->routing = constrain(preferences.getInt((p + "routing").c_str(), out->routing), 0, 3);
       out->limiter_on = preferences.getBool((p + "lim_on").c_str(), out->limiter_on);
-      out->limiter_thresh = preferences.getFloat((p + "lim_t").c_str(), out->limiter_thresh);
+      out->limiter_thresh = safeNvsFloat(preferences.getFloat((p + "lim_t").c_str(), out->limiter_thresh), out->limiter_thresh, -20.0f, 0.0f);
       out->limiter_linear = powf(10.0f, out->limiter_thresh / 20.0f);
       out->hpf_on = preferences.getBool((p + "hpf_on").c_str(), out->hpf_on);
-      out->hpf_freq = preferences.getFloat((p + "hpf_f").c_str(), out->hpf_freq);
-      out->hpf_slope = preferences.getInt((p + "hpf_slope").c_str(), out->hpf_slope);
+      out->hpf_freq = safeNvsFloat(preferences.getFloat((p + "hpf_f").c_str(), out->hpf_freq), out->hpf_freq, 20.0f, 20000.0f);
+      { int slope = preferences.getInt((p + "hpf_slope").c_str(), out->hpf_slope); out->hpf_slope = (slope == 12) ? 12 : 24; }
       out->lpf_on = preferences.getBool((p + "lpf_on").c_str(), out->lpf_on);
-      out->lpf_freq = preferences.getFloat((p + "lpf_f").c_str(), out->lpf_freq);
-      out->lpf_slope = preferences.getInt((p + "lpf_slope").c_str(), out->lpf_slope);
+      out->lpf_freq = safeNvsFloat(preferences.getFloat((p + "lpf_f").c_str(), out->lpf_freq), out->lpf_freq, 20.0f, 20000.0f);
+      { int slope = preferences.getInt((p + "lpf_slope").c_str(), out->lpf_slope); out->lpf_slope = (slope == 12) ? 12 : 24; }
       for (int j = 0; j < 3; j++) {
         String k = String(j + 1);
-        out->peq_freq[j] = preferences.getFloat((p + "peqf" + k).c_str(), out->peq_freq[j]);
-        out->peq_gain[j] = preferences.getFloat((p + "pegg" + k).c_str(), out->peq_gain[j]);
+        out->peq_freq[j] = safeNvsFloat(preferences.getFloat((p + "peqf" + k).c_str(), out->peq_freq[j]), out->peq_freq[j], 20.0f, 20000.0f);
+        out->peq_gain[j] = safeNvsFloat(preferences.getFloat((p + "pegg" + k).c_str(), out->peq_gain[j]), out->peq_gain[j], -15.0f, 15.0f);
         calcBiquadPEQ(&out->peq[j], out->peq_freq[j], out->peq_gain[j], 1.0f);
       }
       calcBiquadHighpass(&out->hpf, out->hpf_freq, 0.707f);
       calcBiquadLowpass(&out->lpf, out->lpf_freq, 0.707f);
       out->comp_on = preferences.getBool((p + "comp_on").c_str(), out->comp_on);
-      out->comp_thresh = preferences.getFloat((p + "comp_t").c_str(), out->comp_thresh);
-      out->comp_ratio = preferences.getFloat((p + "comp_r").c_str(), out->comp_ratio);
-      out->comp_attack_coeff = preferences.getFloat((p + "comp_a").c_str(), out->comp_attack_coeff);
-      out->comp_release_coeff = preferences.getFloat((p + "comp_rel").c_str(), out->comp_release_coeff);
+      out->comp_thresh = safeNvsFloat(preferences.getFloat((p + "comp_t").c_str(), out->comp_thresh), out->comp_thresh, -60.0f, 0.0f);
+      out->comp_ratio = safeNvsFloat(preferences.getFloat((p + "comp_r").c_str(), out->comp_ratio), out->comp_ratio, 1.0f, 20.0f);
+      out->comp_attack_coeff = safeNvsFloat(preferences.getFloat((p + "comp_a").c_str(), out->comp_attack_coeff), out->comp_attack_coeff, 0.0f, 1.0f);
+      out->comp_release_coeff = safeNvsFloat(preferences.getFloat((p + "comp_rel").c_str(), out->comp_release_coeff), out->comp_release_coeff, 0.0f, 1.0f);
       out->comp_envelope = 0.0f;
     }
-    inL.gain_db = preferences.getFloat("inL_gain", inL.gain_db);
+    inL.gain_db = safeNvsFloat(preferences.getFloat("inL_gain", inL.gain_db), inL.gain_db, -20.0f, 20.0f);
     inL.gain_linear = powf(10.0f, inL.gain_db / 20.0f);
     inL.is_mute = preferences.getBool("inL_mute", inL.is_mute);
-    inL.peq_freq = preferences.getFloat("inL_peqf", inL.peq_freq);
-    inL.peq_gain = preferences.getFloat("inL_peqg", inL.peq_gain);
+    inL.peq_freq = safeNvsFloat(preferences.getFloat("inL_peqf", inL.peq_freq), inL.peq_freq, 20.0f, 20000.0f);
+    inL.peq_gain = safeNvsFloat(preferences.getFloat("inL_peqg", inL.peq_gain), inL.peq_gain, -20.0f, 20.0f);
     calcBiquadPEQ(&inL.peq, inL.peq_freq, inL.peq_gain, 1.0f);
-    inR.gain_db = preferences.getFloat("inR_gain", inR.gain_db);
+    inR.gain_db = safeNvsFloat(preferences.getFloat("inR_gain", inR.gain_db), inR.gain_db, -20.0f, 20.0f);
     inR.gain_linear = powf(10.0f, inR.gain_db / 20.0f);
     inR.is_mute = preferences.getBool("inR_mute", inR.is_mute);
-    inR.peq_freq = preferences.getFloat("inR_peqf", inR.peq_freq);
-    inR.peq_gain = preferences.getFloat("inR_peqg", inR.peq_gain);
+    inR.peq_freq = safeNvsFloat(preferences.getFloat("inR_peqf", inR.peq_freq), inR.peq_freq, 20.0f, 20000.0f);
+    inR.peq_gain = safeNvsFloat(preferences.getFloat("inR_peqg", inR.peq_gain), inR.peq_gain, -20.0f, 20.0f);
     calcBiquadPEQ(&inR.peq, inR.peq_freq, inR.peq_gain, 1.0f);
     Serial.println("📂 Full DSP state loaded from NVS");
   }
