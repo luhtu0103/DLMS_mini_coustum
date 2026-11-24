@@ -481,3 +481,22 @@ body {
   .nav-tabs { margin-top: 2px; margin-bottom: 2px; }
   .status-bar { margin-top: 2px; }
 }
+
+
+/* Panel kanan kosong; kontrol dipisahkan ke halaman khusus. */
+.control-panel {
+  width: 200px;
+  border-left: 1px solid #1a2a40;
+  padding-left: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+}
+.control-panel::before {
+  content: 'Control Panel';
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.3;
+}
