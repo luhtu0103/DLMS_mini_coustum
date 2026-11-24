@@ -1735,6 +1735,7 @@ if (document.readyState === 'loading') {
     initOscilloscope();
 }
  
+        function openSetting(outNum) {
             currentOut = outNum; 
             document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active')); 
             document.getElementById('tab-' + outNum).classList.add('active'); 
