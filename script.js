@@ -65,58 +65,125 @@
             slider.dispatchEvent(new Event('input')); 
         }
 
-        async function connectBLE() {
+        let bleReconnectTimer = null;
+        let bleReconnectAttempts = 0;
+        let bleReconnectInProgress = false;
+        const BLE_RECONNECT_MAX_ATTEMPTS = 5;
+
+        function clearBLEReconnect() {
+            if (bleReconnectTimer !== null) clearTimeout(bleReconnectTimer);
+            bleReconnectTimer = null;
+            bleReconnectInProgress = false;
+        }
+
+        async function attachWebBLE(device) {
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+            await characteristic.startNotifications();
+            characteristic.addEventListener('characteristicvaluechanged', handleBLEMessage);
+            device.removeEventListener('gattserverdisconnected', onDisconnected);
+            device.addEventListener('gattserverdisconnected', onDisconnected);
+            bleDevice = device;
+            bleCharacteristic = characteristic;
+        }
+
+        async function connectBLE(isAutomatic = false) {
             if (isBLEConnected()) {
-                alert('Sudah terhubung ke ' + (bleDevice?.name || 'perangkat BLE'));
+                if (!isAutomatic) alert('Sudah terhubung ke ' + (bleDevice?.name || 'perangkat BLE'));
                 return;
+            }
+            if (!isAutomatic) {
+                clearBLEReconnect();
+                bleReconnectAttempts = 0;
             }
             try {
                 const nativeBLE = getNativeBLE();
                 if (nativeBLE) {
+                    // Native BLE bridge owns scanning/connection; automatic retries are
+                    // intentionally disabled for this path to avoid reopening a picker.
                     bleDevice = await nativeBLE.connect(
                         value => handleBLEMessage({ target: { value } }),
                         onDisconnected
                     );
                     bleNativeConnected = true;
                 } else {
-                    bleDevice = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
-                    const server = await bleDevice.gatt.connect();
-                    const service = await server.getPrimaryService(SERVICE_UUID);
-                    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-                    await bleCharacteristic.startNotifications();
-                    bleCharacteristic.addEventListener('characteristicvaluechanged', handleBLEMessage);
-                    bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                    let device = bleDevice;
+                    if (!device) {
+                        device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
+                    }
+                    await attachWebBLE(device);
+                    bleReconnectAttempts = 0;
                 }
                 document.body.classList.add('ble-active');
                 updateBLEStatus(true);
-                // Sinkronkan seluruh state UI hanya sekali saat koneksi baru berhasil.
+                updateSystemInfo();
                 await syncFullStateToDevice();
-                alert('✅ Terhubung ke ' + (bleDevice.name || 'ESP32-S3'));
+                if (!isAutomatic) alert('✅ Terhubung ke ' + (bleDevice?.name || 'ESP32-S3'));
+                else showToast('✅ BLE tersambung kembali');
             } catch (error) {
                 console.error('Error BLE:', error);
-                if (error.name !== 'NotFoundError') {
+                if (isAutomatic) {
+                    scheduleBLEReconnect();
+                } else if (error.name !== 'NotFoundError') {
                     alert('❌ Gagal terhubung: ' + error.message);
                 }
             }
         }
 
+        function scheduleBLEReconnect() {
+            if (getNativeBLE() || !bleDevice || bleReconnectTimer !== null || bleReconnectAttempts >= BLE_RECONNECT_MAX_ATTEMPTS) {
+                if (bleReconnectAttempts >= BLE_RECONNECT_MAX_ATTEMPTS) {
+                    const status = document.getElementById('bleStatusText');
+                    if (status) status.innerText = 'BLE: GAGAL MENYAMBUNG — TEKAN CONNECT';
+                    showToast('⚠️ Sambungan BLE gagal. Tekan CONNECT BLE untuk mencoba lagi.');
+                }
+                return;
+            }
+            const delayMs = Math.min(16000, 1000 * Math.pow(2, bleReconnectAttempts));
+            bleReconnectAttempts++;
+            const status = document.getElementById('bleStatusText');
+            if (status) status.innerText = 'BLE: MENYAMBUNG ULANG (' + bleReconnectAttempts + '/' + BLE_RECONNECT_MAX_ATTEMPTS + ')';
+            const sysStatus = document.getElementById('sys-ble-status');
+            if (sysStatus) { sysStatus.innerText = 'RECONNECTING'; sysStatus.className = 'sys-info-value'; }
+            bleReconnectTimer = setTimeout(async () => {
+                bleReconnectTimer = null;
+                if (bleReconnectInProgress || isBLEConnected()) return;
+                bleReconnectInProgress = true;
+                try {
+                    await connectBLE(true);
+                } finally {
+                    bleReconnectInProgress = false;
+                }
+            }, delayMs);
+        }
+
         function onDisconnected() {
-            // Stop generator locally where possible; firmware also stops it on disconnect.
             currentToneMode = 'off';
             bleNativeConnected = false;
             bleCommandQueue.length = 0;
-            document.body.classList.remove('ble-active');
-            document.body.classList.remove('reactive-glow', 'reactive-bass');
+            document.body.classList.remove('ble-active', 'reactive-glow', 'reactive-bass');
             document.querySelectorAll('.led-block, .mini-led').forEach(led => { led.style.backgroundColor = ''; led.style.boxShadow = ''; });
             document.querySelectorAll('#dash-rta-bars rect').forEach(rect => { rect.setAttribute('height', 0); rect.setAttribute('y', 100); });
-            updateBLEStatus(false);
+            updateBLEStatus(false, true);
             updateToneUIOff();
+            updateSystemInfo();
+            // Web Bluetooth can reconnect to a previously selected device without
+            // asking the user to select it again. Native bridge retries stay manual.
+            scheduleBLEReconnect();
         }
         
-        function updateBLEStatus(isConnected) {
+                function updateBLEStatus(isConnected, preserveDevice = false) {
             const btn = document.getElementById('btnConnectBLE'); const dot = document.getElementById('bleStatusDot'); const text = document.getElementById('bleStatusText');
-            if (isConnected) { btn.innerText = 'CONNECTED'; btn.classList.add('connected'); dot.classList.add('on'); text.innerText = 'BLE: CONNECTED (' + (bleDevice?.name || 'ESP32-S3') + ')'; }
-            else { btn.innerText = 'CONNECT BLE'; btn.classList.remove('connected'); dot.classList.remove('on'); text.innerText = 'BLE: DISCONNECTED'; bleDevice = null; bleCharacteristic = null; bleNativeConnected = false; }
+            if (isConnected) {
+                btn.innerText = 'CONNECTED'; btn.classList.add('connected'); dot.classList.add('on');
+                text.innerText = 'BLE: CONNECTED (' + (bleDevice?.name || 'ESP32-S3') + ')';
+                clearBLEReconnect(); bleReconnectAttempts = 0;
+            } else {
+                btn.innerText = 'CONNECT BLE'; btn.classList.remove('connected'); dot.classList.remove('on');
+                if (!preserveDevice) { text.innerText = 'BLE: DISCONNECTED'; bleDevice = null; }
+                bleCharacteristic = null; bleNativeConnected = false;
+            }
         }
 
         async function sendBLEData(text) {
