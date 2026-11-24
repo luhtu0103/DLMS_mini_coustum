@@ -1145,3 +1145,102 @@ body {
     font-size: 9px;
   }
 }
+
+
+/* Test Tone page: fit controls on phone landscape */
+@media (orientation: landscape) and (max-height: 700px) {
+  #page-test-tone .sub-page-header {
+    padding-bottom: 3px;
+    margin-bottom: 3px;
+  }
+
+  #page-test-tone .sub-page-content {
+    gap: 3px;
+    padding: 4px 8px 5px;
+    overflow-y: auto;
+  }
+
+  #page-test-tone .tone-status-display {
+    padding: 5px 9px;
+    margin-top: 0;
+    gap: 5px;
+    min-height: 0;
+  }
+
+  #page-test-tone .tone-status-left { gap: 7px; }
+  #page-test-tone .tone-status-icon {
+    width: 27px;
+    height: 27px;
+    font-size: 14px;
+    border-width: 1px;
+  }
+  #page-test-tone .tone-status-value { font-size: 12px; }
+  #page-test-tone .tone-freq-display { font-size: 10px; }
+
+  #page-test-tone .feature-card {
+    padding: 5px;
+    margin-bottom: 0;
+  }
+
+  #page-test-tone .feature-card-title {
+    font-size: 8px;
+    margin-bottom: 2px;
+    padding-bottom: 2px;
+  }
+
+  #page-test-tone .tone-mode-selector {
+    gap: 5px;
+    margin-top: 3px;
+  }
+
+  #page-test-tone .tone-mode-btn {
+    padding: 7px 2px;
+    font-size: 10px;
+    letter-spacing: .5px;
+    border-width: 1px;
+    border-radius: 6px;
+  }
+
+  #page-test-tone .tone-mode-btn::before { height: 2px; }
+
+  #page-test-tone .freq-grid {
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  #page-test-tone .freq-btn {
+    padding: 5px 1px;
+    font-size: 9px;
+    letter-spacing: 0;
+    border-radius: 4px;
+  }
+
+  #page-test-tone .tone-volume-row {
+    gap: 6px;
+    padding: 5px 7px;
+    margin-top: 3px;
+  }
+
+  #page-test-tone .tone-volume-label {
+    min-width: 34px;
+    font-size: 8px;
+  }
+
+  #page-test-tone .tone-volume-row input[type=range] { height: 5px; }
+  #page-test-tone .tone-volume-row input[type=range]::-webkit-slider-thumb {
+    width: 14px;
+    height: 14px;
+  }
+
+  #page-test-tone .tone-volume-value {
+    min-width: 34px;
+    font-size: 9px;
+  }
+
+  #page-test-tone .tone-info-box {
+    padding: 5px 7px;
+    margin-top: 0;
+    font-size: 8px;
+    line-height: 1.25;
+  }
+}
