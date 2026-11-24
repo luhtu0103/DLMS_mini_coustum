@@ -83,6 +83,10 @@ volatile int spectrum[7] = {0,0,0,0,0,0,0};
 volatile int g_levelL = 0, g_levelR = 0;
 volatile int g_levelOut1 = 0, g_levelOut2 = 0, g_levelOut3 = 0, g_levelOut4 = 0;
 volatile int osc_buffer[50] = {0};
+volatile int osc_buffer_out1[50] = {0};
+volatile int osc_buffer_out2[50] = {0};
+volatile int osc_buffer_out3[50] = {0};
+volatile int osc_buffer_out4[50] = {0};
 int fft_sample_count = 0;
 
 // ==========================================
@@ -453,7 +457,19 @@ void audioProcessingTask(void *parameter) {
     g_levelOut2 = (sqrt((float)sumO2/(samples/2))/32768.0f > 0.001) ? constrain((int)(20*log10(sqrt((float)sumO2/(samples/2))/32768.0f)+60), 0, 100) : 0;
     g_levelOut3 = (sqrt((float)sumO3/(samples/2))/32768.0f > 0.001) ? constrain((int)(20*log10(sqrt((float)sumO3/(samples/2))/32768.0f)+60), 0, 100) : 0;
     g_levelOut4 = (sqrt((float)sumO4/(samples/2))/32768.0f > 0.001) ? constrain((int)(20*log10(sqrt((float)sumO4/(samples/2))/32768.0f)+60), 0, 100) : 0;
-    
+
+    // Ambil 50 sampel merata dari setiap output stereo setelah DSP selesai.
+    // Indeks selalu genap agar pasangan kanal tidak melewati batas buffer.
+    if (samples >= 100) {
+      for (int j = 0; j < 50; j++) {
+        int sampleIndex = ((j * (samples / 2)) / 50) * 2;
+        osc_buffer_out1[j] = map(tx0_buf[sampleIndex], -32768, 32767, 100, 0);
+        osc_buffer_out2[j] = map(tx0_buf[sampleIndex + 1], -32768, 32767, 100, 0);
+        osc_buffer_out3[j] = map(tx1_buf[sampleIndex], -32768, 32767, 100, 0);
+        osc_buffer_out4[j] = map(tx1_buf[sampleIndex + 1], -32768, 32767, 100, 0);
+      }
+    }
+
     i2s_channel_write(tx0_handle, tx0_buf, bytes_read, &bytes_written, portMAX_DELAY);
     i2s_channel_write(tx1_handle, tx1_buf, bytes_read, &bytes_written, portMAX_DELAY);
   }
@@ -476,7 +492,25 @@ void bleTxTask(void *parameter) {
       char osc_str[300] = "OSC:"; int pos = 4;
       for(int j=0; j<50; j++) { pos += snprintf(osc_str+pos, sizeof(osc_str)-pos, "%d,", osc_buffer[j]); if(pos >= (int)sizeof(osc_str)-10) break; }
       if(pos > 4) osc_str[pos-1] = '\0';
-      g_levelChar->setValue(osc_str); g_levelChar->notify();
+      g_levelChar->setValue(osc_str); g_levelChar->notify(); vTaskDelay(2);
+
+      // Kirim empat kanal OSC terpisah agar setiap notifikasi BLE tetap kecil.
+      char osc_out_str[256];
+      for (int channel = 1; channel <= 4; channel++) {
+        const volatile int *data = channel == 1 ? osc_buffer_out1 :
+                                   channel == 2 ? osc_buffer_out2 :
+                                   channel == 3 ? osc_buffer_out3 : osc_buffer_out4;
+        int outPos = snprintf(osc_out_str, sizeof(osc_out_str), "OSC_OUT%d:", channel);
+        for (int j = 0; j < 50 && outPos < (int)sizeof(osc_out_str) - 8; j++) {
+          outPos += snprintf(osc_out_str + outPos, sizeof(osc_out_str) - outPos,
+                             j == 49 ? "%d" : "%d,", data[j]);
+        }
+        if (outPos > 0 && outPos < (int)sizeof(osc_out_str)) {
+          g_levelChar->setValue(osc_out_str);
+          g_levelChar->notify();
+        }
+        vTaskDelay(2);
+      }
     }
     vTaskDelay(50);
   }
