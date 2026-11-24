@@ -1258,3 +1258,86 @@ body {
   #page-monitor .spectrum-mini-section { flex: 1; }
   #page-monitor .monitor-status-bar { padding: 5px; }
 }
+
+
+/* PRO ROUTING LAYOUT — responsive, keeps existing routing node IDs */
+#page-routing { min-width: 0; }
+#page-routing .routing-header { margin-bottom: 5px; }
+#page-routing .routing-toolbar { display:flex; gap:7px; flex-shrink:0; margin:0 8px 8px; }
+#page-routing .routing-tool { min-height:34px; padding:7px 15px; border:1px solid #20364d; border-radius:8px; background:#0c1728; color:#9bbbe2; font-weight:800; font-size:clamp(10px,1.1vw,14px); cursor:pointer; }
+#page-routing .routing-tool.active { color:#03131b; border-color:#00dff5; background:#00d9ef; box-shadow:0 0 12px #00d9ef55; }
+#page-routing .routing-pro-layout { display:grid; grid-template-columns:minmax(180px, .82fr) minmax(0,2.35fr) minmax(190px,.9fr); gap:10px; flex:1; min-height:0; padding:0 8px 6px; }
+#page-routing .routing-side-panel { display:flex; flex-direction:column; gap:10px; min-width:0; min-height:0; }
+#page-routing .routing-panel { background:linear-gradient(160deg,#0d1b2d 0%,#080f1b 100%); border:1px solid #20364d; border-radius:13px; padding:12px; min-width:0; box-shadow:inset 0 1px 0 #ffffff06; }
+#page-routing .routing-panel h3 { display:flex; align-items:center; gap:8px; margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid #203047; color:#8fc8f4; font-size:clamp(11px,1.05vw,15px); font-weight:800; letter-spacing:.3px; }
+#page-routing .routing-main-panel { display:flex; flex-direction:column; min-height:0; }
+#page-routing .routing-main-panel h3 span { color:#7c9ec9; font-size:.85em; }
+#page-routing .routing-source-pill, #page-routing .routing-preset { display:flex; align-items:center; gap:10px; width:100%; box-sizing:border-box; padding:9px 10px; margin:0 0 6px; border:1px solid #263b52; border-radius:8px; background:#08111e; color:#a9c6e8; text-align:left; }
+#page-routing .routing-source-pill { min-height:38px; }
+#page-routing .routing-source-pill.active { border-color:#00dff5; color:#00e6f7; box-shadow:inset 0 0 0 1px #00dff522; }
+#page-routing .source-dot { width:11px; height:11px; flex:0 0 11px; border-radius:50%; background:#687789; }
+#page-routing .routing-source-pill.active .source-dot { background:#00e6f7; box-shadow:0 0 10px #00e6f7; }
+#page-routing .routing-source-pill b, #page-routing .routing-preset b { display:block; font-size:clamp(10px,.95vw,13px); }
+#page-routing .routing-source-pill small, #page-routing .routing-preset small { display:block; margin-top:2px; color:#8aa5ca; font-size:clamp(8px,.78vw,11px); line-height:1.25; }
+#page-routing .routing-preset { min-height:42px; cursor:pointer; }
+#page-routing .routing-preset.active { border-color:#00dff5; background:linear-gradient(100deg,#063044,#0a1829); box-shadow:0 0 10px #00dff533; }
+#page-routing .preset-icon { width:25px; flex:0 0 25px; text-align:center; font-size:22px; color:#00e5f7; }
+#page-routing .routing-preset.reset-routing { color:#ff7186; }
+#page-routing .routing-preset.reset-routing .preset-icon { color:#ff3659; }
+#page-routing .routing-matrix-wrap { border:1px solid #1b3047; border-radius:9px; padding:6px; }
+#page-routing .routing-matrix-grid { display:grid; grid-template-columns:minmax(92px,1.2fr) repeat(4,minmax(0,1fr)); gap:3px; align-items:stretch; }
+#page-routing .matrix-corner, #page-routing .matrix-output, #page-routing .matrix-input { display:flex; align-items:center; justify-content:center; min-height:30px; border:1px solid #20364d; border-radius:6px; background:#091321; color:#a9c9ed; font-weight:800; font-size:clamp(9px,.9vw,13px); text-align:center; }
+#page-routing .matrix-output { background:#07111e; }
+#page-routing .matrix-output.out1 { color:#00e7f8; border-color:#00dff5; }
+#page-routing .matrix-output.out2 { color:#ffad27; border-color:#e99a19; }
+#page-routing .matrix-output.out3 { color:#00ef9b; border-color:#00d58b; }
+#page-routing .matrix-output.out4 { color:#ff3659; border-color:#e72b4c; }
+#page-routing .matrix-input { justify-content:flex-start; padding-left:12px; background:#0c1928; }
+#page-routing .route-node { display:block; width:clamp(20px,2.6vw,34px); height:clamp(20px,2.6vw,34px); min-width:20px; min-height:20px; border:1.5px solid #60738b; border-radius:6px; background:#030811; margin:auto; cursor:pointer; transition:background .15s,box-shadow .15s; }
+#page-routing .route-node.active { background:#00e2f4; border-color:#00f1ff; box-shadow:0 0 13px #00e2f477; }
+#page-routing .routing-diagram { position:relative; display:grid; grid-template-columns:56px minmax(0,1fr) 78px; align-items:stretch; flex:1; min-height:105px; margin:12px 0 4px; }
+#page-routing .diagram-inputs, #page-routing .diagram-outputs { display:flex; flex-direction:column; justify-content:space-around; align-items:stretch; gap:8px; z-index:1; }
+#page-routing .diagram-source, #page-routing .diagram-output { display:flex; align-items:center; justify-content:center; min-height:27px; border:1px solid #00dff5; border-radius:7px; background:#071525; color:#00e6f7; font-weight:900; font-size:clamp(9px,.9vw,13px); box-shadow:0 0 9px #00dff522; }
+#page-routing .diagram-source.source-r { border-color:#00d88b; color:#00e99a; }
+#page-routing .diagram-output.out1 { border-color:#00dff5; color:#00e6f7; }
+#page-routing .diagram-output.out2 { border-color:#f5a11d; color:#ffb32e; }
+#page-routing .diagram-output.out3 { border-color:#00d88b; color:#00e99a; }
+#page-routing .diagram-output.out4 { border-color:#f52b4e; color:#ff4564; }
+#page-routing .routing-flow-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+#page-routing .flow-line { fill:none; stroke-width:2.5; stroke-linecap:round; opacity:.85; }
+#page-routing .flow-l { stroke:#00c9ff; }
+#page-routing .flow-r { stroke:#00e88c; }
+#page-routing .flow-junction { fill:#00e7f5; filter:drop-shadow(0 0 4px #00e7f5); }
+#page-routing .routing-hint { margin:4px 0 0; color:#88a8d0; font-size:clamp(9px,.8vw,11px); text-align:center; }
+#page-routing .routing-right-panel .routing-panel { padding:12px; }
+#page-routing .routing-status-row { display:grid; grid-template-columns:64px 30px minmax(25px,1fr); align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #1d3044; color:#a8c8e9; font-size:12px; }
+#page-routing .routing-status-row:last-child { border-bottom:0; }
+#page-routing .status-output { padding:5px 3px; border:1px solid currentColor; border-radius:6px; text-align:center; font-weight:900; font-size:10px; }
+#page-routing .status-output.out1 { color:#00e6f7; } #page-routing .status-output.out2 { color:#ffad27; } #page-routing .status-output.out3 { color:#00ef9b; } #page-routing .status-output.out4 { color:#ff3659; }
+#page-routing .routing-status-track { height:9px; border-radius:10px; overflow:hidden; background:#283749; }
+#page-routing .routing-status-track i { display:block; height:100%; width:62%; border-radius:10px; background:#38ed6a; box-shadow:0 0 7px #38ed6a55; transition:width .2s; }
+#page-routing .routing-status-track i.sum { background:#00dff5; box-shadow:0 0 7px #00dff555; }
+#page-routing .routing-status-track i.inactive { background:#536171; box-shadow:none; }
+#page-routing .routing-info-panel { flex:1; }
+#page-routing .routing-info-panel p { color:#a5bedc; font-size:clamp(10px,.9vw,13px); line-height:1.45; margin:8px 0; }
+@media (orientation:landscape) and (max-height:700px) {
+  #page-routing .sub-page-header { padding-bottom:4px; margin-bottom:5px; }
+  #page-routing .routing-toolbar { margin-bottom:6px; }
+  #page-routing .routing-pro-layout { gap:8px; }
+  #page-routing .routing-panel { padding:9px; }
+  #page-routing .routing-side-panel { gap:7px; }
+  #page-routing .routing-panel h3 { margin-bottom:7px; padding-bottom:6px; }
+  #page-routing .routing-source-pill { min-height:30px; padding:6px 8px; margin-bottom:5px; }
+  #page-routing .routing-preset { min-height:33px; padding:6px 8px; margin-bottom:5px; }
+  #page-routing .routing-diagram { min-height:75px; margin-top:7px; }
+  #page-routing .routing-status-row { padding:5px 0; }
+}
+@media (max-width:700px) and (orientation:portrait) {
+  #page-routing { overflow-y:auto; }
+  #page-routing .routing-pro-layout { display:flex; flex-direction:column; overflow:visible; }
+  #page-routing .routing-side-panel { display:grid; grid-template-columns:1fr; }
+  #page-routing .routing-main-panel { min-height:300px; }
+  #page-routing .routing-diagram { min-height:130px; }
+  #page-routing .routing-right-panel { display:grid; grid-template-columns:1fr; }
+  #page-routing .routing-tool { flex:1; padding:7px 5px; }
+}
