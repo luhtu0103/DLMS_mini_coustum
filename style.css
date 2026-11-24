@@ -756,3 +756,25 @@ body {
   #page-setting .controls-col .out-tab-btn { padding-top: 5px; padding-bottom: 5px; }
   #page-setting .col-graph { padding: 4px; }
 }
+
+
+/* Keep controls and response curve as independent side-by-side panels */
+#page-setting .setting-layout.out-landscape-layout {
+    grid-template-columns: 48px minmax(320px, 0.95fr) minmax(380px, 1.4fr);
+    align-items: stretch;
+}
+#page-setting .controls-col {
+    grid-column: 2;
+    width: 100%;
+    max-width: none;
+}
+#page-setting .col-graph {
+    grid-column: 3;
+    width: 100%;
+}
+@media (max-width: 760px) {
+    #page-setting .setting-layout.out-landscape-layout {
+        grid-template-columns: 42px minmax(230px, 0.95fr) minmax(260px, 1.1fr);
+        gap: 5px;
+    }
+}
