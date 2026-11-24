@@ -1,11 +1,11 @@
-// DLMS Mini Service Worker - Version 9
-const CACHE_NAME = 'dlms-v9';
+// DLMS Mini Service Worker - Version 10
+const CACHE_NAME = 'dlms-v10';
 const BASE_PATH = '/DLMS_mini_coustum/';
 const ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html',
-  BASE_PATH + 'style.css?v=20261124-navfix1',
-  BASE_PATH + 'script.js?v=20261124-navfix1',
+  BASE_PATH + 'style.css?v=20261124-navfix2',
+  BASE_PATH + 'script.js?v=20261124-navfix2',
   BASE_PATH + 'manifest.json'
 ];
 self.addEventListener('install', event => {
