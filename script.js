@@ -701,7 +701,16 @@
             applyGlobalLink(currentOut);
         }
 
-        function openInputSetting(ch) { currentInput = ch; document.querySelectorAll('#page-input-setting .out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-in-' + ch).classList.add('active'); loadInputUI(ch); showPage('page-input-setting'); }
+        function openInputSetting(ch) {
+            if (ch !== 'L' && ch !== 'R') return;
+            currentInput = ch;
+            const tab = document.getElementById('tab-in-' + ch);
+            document.querySelectorAll('#page-input-setting .out-tab').forEach(t => t.classList.remove('active'));
+            if (tab) tab.classList.add('active');
+            showPage('page-input-setting');
+            try { loadInputUI(ch); }
+            catch (err) { console.error('[DLMS] Gagal memuat Input ' + ch, err); }
+        }
         function switchInputTab(ch) { saveInputUI(); currentInput = ch; document.querySelectorAll('#page-input-setting .out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-in-' + ch).classList.add('active'); loadInputUI(ch); }
         function saveInputUI() { let st = inputState[currentInput]; st.gain = document.getElementById('inputGain').value; st.peqFreq = document.getElementById('in_peq_freq').value; st.peqGain = document.getElementById('in_peq_gain').value; }
         function loadInputUI(ch) { let st = inputState[ch]; document.getElementById('inputGain').value = st.gain; document.getElementById('inputGainVal').innerText = st.gain + ' dB'; document.getElementById('in_peq_freq').value = st.peqFreq; document.getElementById('in_peq_freqVal').innerText = (st.peqFreq >= 1000) ? (st.peqFreq/1000).toFixed(1)+'k' : st.peqFreq; document.getElementById('in_peq_gain').value = st.peqGain; document.getElementById('in_peq_gainVal').innerText = st.peqGain; }
@@ -1074,28 +1083,58 @@ function exportNotes() {
 
 function showPage(pageId) {
             const page = document.getElementById(pageId);
-            if (!page) return;
-            const currentPage = document.querySelector('.page.active');
-            if (currentPage && currentPage.id === 'page-test-tone' && pageId !== 'page-test-tone' && currentToneMode !== 'off') {
-                sendBLEData('SIG_GEN,0');
-                currentToneMode = 'off';
-                updateToneUIOff();
+            if (!page || !page.classList.contains('page')) {
+                console.error('[DLMS] Halaman tidak ditemukan:', pageId);
+                return;
             }
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+            const currentPage = document.querySelector('.page.active');
+            try {
+                if (currentPage && currentPage.id === 'page-test-tone' &&
+                    pageId !== 'page-test-tone' && currentToneMode !== 'off') {
+                    sendBLEData('SIG_GEN,0');
+                    currentToneMode = 'off';
+                    updateToneUIOff();
+                }
+            } catch (err) {
+                console.error('[DLMS] Gagal menghentikan test tone:', err);
+            }
+
+            // Set display secara eksplisit agar navigasi tetap tampil pada Android WebView.
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+                p.style.display = 'none';
+            });
             page.classList.add('active');
-            if (pageId !== 'page-rta' && rtaActive) toggleRTA();
+            page.style.display = 'flex';
+            page.style.flexDirection = 'column';
+            page.style.height = '100%';
+            page.style.minHeight = '0';
+
             rtaPageActive = (pageId === 'page-rta');
-            if (pageId === 'page-front') syncDashboardUI();
-            if (pageId === 'page-routing') updateRoutingUI();
-            if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
-            if (pageId === 'page-presets') refreshEffectsPage();
-            if (pageId === 'page-test-tone') initTestTonePage();
-            if (pageId === 'page-system') refreshSystemPage();
-            if (pageId !== 'page-monitor' && monitorActive) stopMonitor();
-            if (pageId === 'page-monitor') setTimeout(initMonitor, 100);
-            if (pageId === 'page-notes') initNotesPage();
-            if (pageId === 'page-spectrum') setTimeout(initSpectrum, 100);
-            if (pageId !== 'page-spectrum') stopSpectrum();
+            try {
+                if (pageId !== 'page-rta' && rtaActive) toggleRTA();
+                if (pageId === 'page-front') syncDashboardUI();
+                if (pageId === 'page-routing') updateRoutingUI();
+                if (pageId === 'page-quick') requestAnimationFrame(() => {
+                    try { buildMixer(); } catch (err) { console.error('[DLMS] Mixer:', err); }
+                });
+                if (pageId === 'page-presets') refreshEffectsPage();
+                if (pageId === 'page-test-tone') initTestTonePage();
+                if (pageId === 'page-system') refreshSystemPage();
+                if (pageId !== 'page-monitor' && monitorActive) stopMonitor();
+                if (pageId === 'page-monitor') setTimeout(() => {
+                    try { initMonitor(); } catch (err) { console.error('[DLMS] Monitor:', err); }
+                }, 100);
+                if (pageId === 'page-notes') initNotesPage();
+                if (pageId === 'page-spectrum') setTimeout(() => {
+                    try { initSpectrum(); } catch (err) { console.error('[DLMS] Spectrum:', err); }
+                }, 100);
+                if (pageId !== 'page-spectrum') stopSpectrum();
+            } catch (err) {
+                // Jangan biarkan kegagalan inisialisasi mengosongkan seluruh halaman.
+                console.error('[DLMS] Inisialisasi halaman gagal:', pageId, err);
+            }
         }
 
 // === MIXER CHANNEL STRIP BUILDER ===
