@@ -606,3 +606,140 @@ body {
     #page-setting .graph-col { flex-basis: 28px; width: 28px; min-width: 28px; }
     #page-setting .controls-col { padding-right: 3px; }
 }
+
+
+/* === OUTPUT LANDSCAPE: meters | controls | response graph === */
+#page-setting .setting-header {
+    flex: 0 0 auto;
+    min-height: 38px;
+    align-items: center;
+    padding: 4px 8px;
+}
+#page-setting .setting-layout.out-landscape-layout {
+    display: grid;
+    grid-template-columns: 48px minmax(245px, 0.95fr) minmax(220px, 1.35fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 7px;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 0;
+    overflow: hidden;
+}
+#page-setting .col-meters {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px 3px;
+    background: #03060a;
+    border: 1px solid #1a2a40;
+    border-radius: 4px;
+    overflow: hidden;
+}
+#page-setting .meter-label {
+    color: #8ab4f8;
+    font-size: 8px;
+    font-weight: 700;
+}
+#page-setting .vu-stack {
+    display: flex;
+    flex: 1;
+    min-height: 70px;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+}
+#page-setting .vu-stack .mini-vu {
+    width: 13px;
+    max-width: 13px;
+    min-height: 0;
+    flex: 1;
+}
+#page-setting .col-meters .graph-utils {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 5px;
+}
+#page-setting .col-meters .util-btn {
+    width: 100%;
+    min-height: 26px;
+    padding: 3px 0;
+    font-size: 8px;
+}
+#page-setting .controls-col {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+    gap: 4px;
+}
+#page-setting .controls-col > .reset-btn {
+    flex: 0 0 auto;
+}
+#page-setting .controls-col .out-tabs {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 3px;
+    margin: 0;
+}
+#page-setting .controls-col .out-tab-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 2px;
+    font-size: 9px;
+}
+#page-setting .out-tab-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 2px 2px 6px 0;
+}
+#page-setting .out-tab-panel.active { display: flex; }
+#page-setting .col-graph {
+    grid-column: 3;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    padding: 7px;
+    background: #03060a;
+    border: 1px solid #1a2a40;
+    border-radius: 4px;
+}
+#page-setting .graph-header {
+    display: flex;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    color: #8ab4f8;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+#page-setting .svg-container {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+#page-setting .svg-container svg { display: block; width: 100%; height: 100%; }
+@media (max-width: 560px) {
+    #page-setting .setting-layout.out-landscape-layout {
+        grid-template-columns: 38px minmax(205px, 1fr) minmax(150px, 0.8fr);
+        gap: 4px;
+    }
+    #page-setting .col-meters { padding: 5px 2px; }
+    #page-setting .controls-col .out-tab-btn { font-size: 8px; }
+}
