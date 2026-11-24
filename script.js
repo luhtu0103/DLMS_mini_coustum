@@ -795,20 +795,17 @@
         }
 
         function setRouting(outNum, channel, toggle) {
-            if (outNum < 1 || outNum > 4 || !globalState[outNum]) return;
+            if (outNum < 1 || outNum > 4 || !globalState[outNum] || !toggle) return;
             const out = globalState[outNum];
-            let newRouting = Number.isInteger(out.routing) ? out.routing : 3;
-            if (toggle && channel === 'L') {
-                if (newRouting === 1) newRouting = 2;
-                else if (newRouting === 2) newRouting = 3;
-                else if (newRouting === 3) newRouting = 0;
-                else newRouting = 0;
-            } else if (toggle && channel === 'R') {
-                if (newRouting === 0) newRouting = 2;
-                else if (newRouting === 2) newRouting = 3;
-                else if (newRouting === 3) newRouting = 1;
-                else newRouting = 1;
-            } else return;
+            const current = Number.isInteger(out.routing) ? out.routing : 3;
+            // Encoding used by firmware: 0=L, 1=R, 2=L+R, 3=OFF.
+            const transitions = {
+                L: { 0: 3, 1: 2, 2: 1, 3: 0 },
+                R: { 0: 2, 1: 3, 2: 0, 3: 1 }
+            };
+            if (!transitions[channel]) return;
+            const newRouting = transitions[channel][current];
+            if (!Number.isInteger(newRouting)) return;
             out.routing = newRouting;
             sendBLEData('OUT' + outNum + '_ROUTING,' + newRouting);
             updateRoutingUI();
