@@ -240,6 +240,17 @@
 
         function handleBLEMessage(event) {
             const text = new TextDecoder().decode(event.target.value).trim();
+            if (text.startsWith('STATUS:')) {
+                const status = text.slice(7).trim();
+                const messages = {
+                    SAVE_OK: '✓ Parameter DSP tersimpan di NVS ESP32.',
+                    SAVE_FAIL: '❌ Gagal menyimpan parameter ke NVS ESP32.',
+                    LOAD_OK: '✓ Parameter berhasil dimuat dari NVS ESP32. Tampilan aplikasi mungkin perlu diselaraskan ulang.',
+                    LOAD_FAIL: '❌ Data NVS tidak tersedia atau gagal dibaca.'
+                };
+                if (messages[status]) showToast(messages[status]);
+                return;
+            }
             if (text.startsWith('INFO:')) {
                 const fields = Object.fromEntries(text.slice(5).split(';').map(item => item.split('=')));
                 if (fields.FW) detectedFirmwareVersion = fields.FW;
@@ -1086,8 +1097,8 @@ function initTestTonePage(){
     setToneFreq(currentToneFreq);
 }
 function isSystemBLEConnected(){return isBLEConnected();}
-function saveToNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('SAVE_TO_NVS,1');showToast('Permintaan simpan dikirim; perlu dukungan firmware.');}
-function loadFromNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('LOAD_FROM_NVS,1');showToast('Permintaan muat dikirim; perlu dukungan firmware.');}
+function saveToNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('SAVE_TO_NVS,1');showToast('Permintaan simpan dikirim ke ESP32…');}
+function loadFromNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('LOAD_FROM_NVS,1');showToast('Permintaan muat dikirim ke ESP32…');}
 function saveBackupLocal(){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');const b={version:'1.0',timestamp:new Date().toISOString(),outs:globalState,ins:inputState,master:m?Number(m.value):0,deviceName:document.getElementById('dash-title').innerText};try{localStorage.setItem('DLMS_BACKUP_FULL',JSON.stringify(b));showToast('📱 Backup tersimpan di HP!');updateSystemInfo();}catch(e){showToast('❌ Gagal menyimpan backup!');}}
 function restoreBackupLocal(){const raw=localStorage.getItem('DLMS_BACKUP_FULL');if(!raw){showToast('⚠️ Tidak ada backup!');return;}if(!confirm('Restore backup? Settingan saat ini akan ditimpa!'))return;try{const b=JSON.parse(raw);if(b.outs){for(let i=1;i<=4;i++)if(!b.outs[i])throw Error('Data output tidak lengkap');globalState=b.outs;for(let i=1;i<=4;i++)sendOutputStateToDevice(i,globalState[i]);}if(b.ins){if(!b.ins.L||!b.ins.R)throw Error('Data input tidak lengkap');inputState=b.ins;sendInputStateToDevice('L',inputState.L);sendInputStateToDevice('R',inputState.R);}if(b.master!==undefined){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');if(m){m.value=b.master;m.dispatchEvent(new Event('input',{bubbles:true}));}}if(b.deviceName){document.getElementById('dash-title').innerText=b.deviceName;localStorage.setItem('DLMS_DEVICE_NAME',b.deviceName);}syncDashboardUI();showToast('🔄 Backup direstore!');}catch(e){showToast('❌ Backup tidak valid!');}}
 function renameDevice(){const el=document.getElementById('dash-title'),old=el.innerText,n=prompt('Nama perangkat baru:',old);if(n===null||!n.trim())return;const name=n.trim().substring(0,20);el.innerText=name;localStorage.setItem('DLMS_DEVICE_NAME',name);showToast('✅ Nama diubah: '+name);}
