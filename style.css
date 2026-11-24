@@ -1244,3 +1244,17 @@ body {
     line-height: 1.25;
   }
 }
+
+
+/* Monitor landscape: expand meters and scope after removing AI buttons */
+@media (orientation: landscape) and (max-height: 700px) {
+  #page-monitor .monitor-content {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  #page-monitor .scope-section { flex: 2.8; }
+  #page-monitor .meter-section { flex: 2.4; padding: 5px; }
+  #page-monitor .spectrum-mini-section { flex: 1; }
+  #page-monitor .monitor-status-bar { padding: 5px; }
+}
