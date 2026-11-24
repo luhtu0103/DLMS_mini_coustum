@@ -1597,7 +1597,8 @@ function showToast(msg) {
                 rtaMicrophone = rtaAudioContext.createMediaStreamSource(rtaStream);
                 rtaMicrophone.connect(rtaAnalyser);
                 
-                rtaFrequencyDataArray = new Float32Array(rtaAnalyser.frequencyBinCount);\n                rtaTimeDataArray = new Float32Array(rtaAnalyser.fftSize);
+                rtaFrequencyDataArray = new Float32Array(rtaAnalyser.frequencyBinCount);
+                rtaTimeDataArray = new Float32Array(rtaAnalyser.fftSize);
                 rtaBands = buildRTABands(rtaAudioContext.sampleRate, rtaAnalyser.fftSize, 16);
                 rtaPeakHold = new Array(16).fill(0);
                 
