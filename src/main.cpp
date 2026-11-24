@@ -320,6 +320,13 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     if (cmd == "SIG_GEN") { if (val != 0 && val != 1 && val != 2) return; gen_type = (int)val; if(gen_type==2) gen_phase=0.0; }
     else if (cmd == "SIG_FREQ") { if (val < 20 || val > 20000) return; gen_freq = val; gen_phase = 0.0; }
     else if (cmd == "TONE_LEVEL") { if (val < -60 || val > 0) return; gen_level_db = val; gen_level_linear = powf(10.0f, val / 20.0f); }
+    else if (cmd == "INFO") {
+      if (val != 1) return;
+      if (g_levelChar != nullptr) {
+        g_levelChar->setValue("INFO:FW=V11;SR=48000");
+        g_levelChar->notify();
+      }
+    }
     else if (cmd == "SAVE_TO_NVS") { if (val == 1) saveToNVS(); }
     else if (cmd == "LOAD_FROM_NVS") { if (val == 1) loadFromNVS(); }
     else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; master_linear_cached = powf(10.0f, val / 20.0f); }
