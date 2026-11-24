@@ -6,7 +6,7 @@
     <title>DLMS CUSTOM - Final V20 (RTA Mic + PWA)</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00e5ff">
-    <link rel="stylesheet" href="style.css?v=20261124-routing-pro2">
+    <link rel="stylesheet" href="style.css?v=20261124-routing-pro3">
 </head>
 <body>
 
@@ -461,30 +461,7 @@
     <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
   </div>
 
-  <div class="routing-toolbar" role="tablist" aria-label="Routing navigation">
-    <button class="routing-tool active" onclick="routingScrollTo('routing-matrix', this)">⌁ OUTPUT ROUTING</button>
-    <button class="routing-tool" onclick="routingScrollTo('routing-matrix', this)">▦ MATRIX VIEW</button>
-    <button class="routing-tool" onclick="routingScrollTo('routing-quick-setup', this)">▱ PRESET</button>
-  </div>
-
   <div class="routing-pro-layout">
-    <aside class="routing-side-panel">
-      <section class="routing-panel">
-        <h3>〰 INPUT SOURCE</h3>
-        <div class="routing-source-pill active"><span class="source-dot"></span><span><b>L (Left)</b><small>Input channel kiri</small></span></div>
-        <div class="routing-source-pill"><span class="source-dot"></span><span><b>R (Right)</b><small>Input channel kanan</small></span></div>
-        <div class="routing-source-pill sum-source"><span class="source-dot"></span><span><b>SUM (L + R)</b><small>Gabungan mono</small></span></div>
-      </section>
-
-      <section class="routing-panel" id="routing-quick-setup">
-        <h3>ϟ QUICK SETUP</h3>
-        <button class="routing-preset" onclick="applyRoutingPreset('stereo', this)"><span class="preset-icon">↔</span><span><b>STEREO</b><small>L → O1, R → O2</small></span></button>
-        <button class="routing-preset active" onclick="applyRoutingPreset('dual', this)"><span class="preset-icon">◫</span><span><b>DUAL MONO</b><small>L → O1 &amp; O3, R → O2 &amp; O4</small></span></button>
-        <button class="routing-preset" onclick="applyRoutingPreset('sum', this)"><span class="preset-icon">Σ</span><span><b>SUM (L+R) TO ALL</b><small>Gabungkan input ke semua output</small></span></button>
-        <button class="routing-preset reset-routing" onclick="applyRoutingPreset('reset', this)"><span class="preset-icon">↺</span><span><b>RESET ROUTING</b><small>Kembalikan konfigurasi awal</small></span></button>
-      </section>
-    </aside>
-
     <main class="routing-main-panel routing-panel" id="routing-matrix">
       <h3>▦ ROUTING MATRIX <span>(INPUT → OUTPUT)</span></h3>
       <div class="routing-matrix-wrap">
@@ -503,6 +480,12 @@
           <button class="route-node" id="route-4-R" aria-label="Toggle input R to output 4" onclick="setRouting(4, 'R', true)"></button>
         </div>
       </div>
+      <section class="routing-quick-row" id="routing-quick-setup" aria-label="Quick routing presets">
+        <button class="routing-preset" onclick="applyRoutingPreset('stereo', this)"><span class="preset-icon">↔</span><span><b>STEREO</b><small>L → O1, R → O2</small></span></button>
+        <button class="routing-preset active" onclick="applyRoutingPreset('dual', this)"><span class="preset-icon">◫</span><span><b>DUAL MONO</b><small>L → O1 &amp; O3, R → O2 &amp; O4</small></span></button>
+        <button class="routing-preset" onclick="applyRoutingPreset('sum', this)"><span class="preset-icon">Σ</span><span><b>SUM (L+R)</b><small>Gabungkan ke semua output</small></span></button>
+        <button class="routing-preset reset-routing" onclick="applyRoutingPreset('reset', this)"><span class="preset-icon">↺</span><span><b>RESET</b><small>Kembalikan awal</small></span></button>
+      </section>
       <div class="routing-diagram" aria-label="Diagram alur routing">
         <div class="diagram-inputs"><span class="diagram-source source-l">L</span><span class="diagram-source source-r">R</span></div>
         <svg class="routing-flow-svg" viewBox="0 0 600 180" preserveAspectRatio="none" aria-hidden="true">
@@ -516,7 +499,7 @@
           <span class="diagram-output out1">OUT 1</span><span class="diagram-output out2">OUT 2</span><span class="diagram-output out3">OUT 3</span><span class="diagram-output out4">OUT 4</span>
         </div>
       </div>
-      <p class="routing-hint">Klik kotak pada matrix untuk mengaktifkan atau memutus routing. Perubahan dikirim ke ESP32 melalui BLE.</p>
+      <p class="routing-hint">Klik kotak matrix untuk mengubah jalur sinyal. Perubahan dikirim ke ESP32 melalui BLE.</p>
     </main>
 
     <aside class="routing-side-panel routing-right-panel">
@@ -526,12 +509,6 @@
         <div class="routing-status-row"><span class="status-output out2">OUT 2</span><b id="routing-status-2">R</b><span class="routing-status-track"><i id="routing-status-bar-2"></i></span></div>
         <div class="routing-status-row"><span class="status-output out3">OUT 3</span><b id="routing-status-3">L</b><span class="routing-status-track"><i id="routing-status-bar-3"></i></span></div>
         <div class="routing-status-row"><span class="status-output out4">OUT 4</span><b id="routing-status-4">R</b><span class="routing-status-track"><i id="routing-status-bar-4"></i></span></div>
-      </section>
-      <section class="routing-panel routing-info-panel">
-        <h3>ⓘ INFORMASI</h3>
-        <p>• Klik kotak pada matrix untuk mengubah jalur sinyal.</p>
-        <p>• Gunakan Quick Setup untuk konfigurasi cepat.</p>
-        <p>• SUM (L+R) menggabungkan sinyal L dan R menjadi mono.</p>
       </section>
     </aside>
   </div>
@@ -606,7 +583,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261124-routing-pro2"></script>
+    <script src="script.js?v=20261124-routing-pro3"></script>
 
     
 
