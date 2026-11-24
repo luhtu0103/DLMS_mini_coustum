@@ -182,10 +182,10 @@ static float safeNvsFloat(float value, float fallback, float minValue, float max
   return fminf(maxValue, fmaxf(minValue, value));
 }
 
-void saveToNVS() {
+bool saveToNVS() {
   if (!preferences.begin("dlms_v11", false)) {
     Serial.println("❌ NVS open for write failed");
-    return;
+    return false;
   }
   preferences.putFloat("m_vol", master_volume);
   preferences.putBool("bypass", global_bypass);
@@ -226,12 +226,13 @@ void saveToNVS() {
   preferences.putFloat("inR_peqg", inR.peq_gain);
   preferences.end();
   Serial.println("💾 Full DSP state saved to NVS");
+  return true;
 }
 
-void loadFromNVS() {
+bool loadFromNVS() {
   if (!preferences.begin("dlms_v11", true)) {
     Serial.println("❌ NVS open for read failed");
-    return;
+    return false;
   }
   if (preferences.isKey("m_vol")) {
     master_volume = safeNvsFloat(preferences.getFloat("m_vol", 0.0f), 0.0f, -60.0f, 0.0f);
@@ -285,6 +286,7 @@ void loadFromNVS() {
     Serial.println("📂 Full DSP state loaded from NVS");
   }
   preferences.end();
+  return true;
 }
 
 // ==========================================
@@ -327,8 +329,16 @@ class MyCallbacks: public BLECharacteristicCallbacks {
         g_levelChar->notify();
       }
     }
-    else if (cmd == "SAVE_TO_NVS") { if (val == 1) saveToNVS(); }
-    else if (cmd == "LOAD_FROM_NVS") { if (val == 1) loadFromNVS(); }
+    else if (cmd == "SAVE_TO_NVS") {
+      if (val != 1) return;
+      bool ok = saveToNVS();
+      if (g_levelChar != nullptr) { g_levelChar->setValue(ok ? "STATUS:SAVE_OK" : "STATUS:SAVE_FAIL"); g_levelChar->notify(); }
+    }
+    else if (cmd == "LOAD_FROM_NVS") {
+      if (val != 1) return;
+      bool ok = loadFromNVS();
+      if (g_levelChar != nullptr) { g_levelChar->setValue(ok ? "STATUS:LOAD_OK" : "STATUS:LOAD_FAIL"); g_levelChar->notify(); }
+    }
     else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; master_linear_cached = powf(10.0f, val / 20.0f); }
     else if (cmd == "ALL_BYPASS") { global_bypass = (val > 0); }
     else if (cmd.startsWith("IN_")) {
