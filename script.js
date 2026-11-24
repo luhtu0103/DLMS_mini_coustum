@@ -1378,8 +1378,8 @@ function showToast(msg) {
       const isNativeCapacitor = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
       if ('serviceWorker' in navigator && !isNativeCapacitor) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('✅ Service Worker terdaftar'))
+          navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+            .then(reg => { reg.update().catch(() => {}); console.log('✅ Service Worker terdaftar / diperbarui'); })
             .catch(err => console.log('❌ Gagal daftar SW:', err));
         });
       }
