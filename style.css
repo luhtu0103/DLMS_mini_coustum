@@ -1074,3 +1074,74 @@ body {
 }
 .notes-action-btn.primary { background: var(--neon-blue); color: #000; border-color: var(--neon-blue); }
 .notes-status { font-size: 8px; color: var(--text-dim); margin-top: 8px; }
+
+
+/* Effects page: compact controls for phone landscape */
+@media (orientation: landscape) and (max-height: 700px) {
+  #page-presets .sub-page-header {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
+
+  #page-presets .sub-page-content {
+    gap: 3px;
+    padding: 5px 8px 6px;
+  }
+
+  #page-presets .feature-card {
+    padding: 5px;
+    margin-bottom: 0;
+  }
+
+  #page-presets .feature-card-title {
+    font-size: 9px;
+    margin-bottom: 3px;
+    padding-bottom: 3px;
+  }
+
+  #page-presets .scenes-grid {
+    gap: 5px;
+    margin-top: 3px;
+  }
+
+  #page-presets .scene-card {
+    padding: 4px 3px;
+    gap: 1px;
+  }
+
+  #page-presets .scene-icon {
+    font-size: 15px;
+    margin-bottom: 0;
+  }
+
+  #page-presets .scene-name {
+    font-size: 9px;
+    line-height: 1.1;
+  }
+
+  #page-presets .scene-desc {
+    font-size: 7px;
+    line-height: 1.1;
+  }
+
+  #page-presets .section-divider {
+    margin: 3px 0 2px;
+  }
+
+  #page-presets .preset-large-grid {
+    gap: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+  }
+
+  #page-presets .preset-large-btn {
+    padding: 5px 0;
+    font-size: 11px;
+  }
+
+  #page-presets .big-toggle-btn {
+    padding: 6px 8px;
+    margin-top: 3px;
+    font-size: 9px;
+  }
+}
