@@ -564,7 +564,10 @@
             sendBLEData('OUT' + targetOut + '_COMP_RATIO,' + tgt.compRatio);
             sendBLEData('OUT' + targetOut + '_COMP_ATK,' + tgt.compAtk);
             sendBLEData('OUT' + targetOut + '_COMP_REL,' + tgt.compRel);
-            document.getElementById('dash-vol-' + targetOut).value = tgt.gain;
+            const targetGainSlider = document.getElementById('dash-vol-' + targetOut);
+            if (targetGainSlider) targetGainSlider.value = tgt.gain;
+            const targetGainLabel = document.getElementById('val-o' + targetOut);
+            if (targetGainLabel) targetGainLabel.innerText = tgt.gain + ' dB';
             updateDashboardGraph();
             if (currentOut === targetOut && document.getElementById('page-setting').classList.contains('active')) {
                 loadStateToUI(targetOut);
