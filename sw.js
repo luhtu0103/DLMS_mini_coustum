@@ -1,11 +1,11 @@
 // DLMS Mini Service Worker - Version 18
-const CACHE_NAME = 'dlms-v18';
+const CACHE_NAME = 'dlms-v19';
 const BASE_PATH = '/DLMS_mini_coustum/';
 const ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html',
-  BASE_PATH + 'style.css?v=20261124-routing-pro3',
-  BASE_PATH + 'script.js?v=20261124-routing-pro3',
+  BASE_PATH + 'style.css?v=20261124-routing-pro4',
+  BASE_PATH + 'script.js?v=20261124-routing-pro4',
   BASE_PATH + 'manifest.json'
 ];
 self.addEventListener('install', event => {
