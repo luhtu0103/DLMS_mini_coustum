@@ -778,3 +778,35 @@ body {
         gap: 5px;
     }
 }
+
+
+/* Output controls: reset sejajar dengan tab FILTER/EQ/DYNAMICS/DELAY */
+#page-setting .out-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    margin: 6px 0;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+#page-setting .out-tabs .out-tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+}
+#page-setting .out-tabs .out-reset-btn {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 52px;
+    padding: 7px 8px;
+    margin: 0;
+    border-radius: 4px;
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
+}
+@media (max-width: 560px) {
+    #page-setting .out-tabs { gap: 3px; }
+    #page-setting .out-tabs .out-tab-btn { font-size: 7px; padding-left: 1px; padding-right: 1px; }
+    #page-setting .out-tabs .out-reset-btn { min-width: 43px; padding: 7px 4px; font-size: 8px; }
+}
