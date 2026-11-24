@@ -815,14 +815,32 @@
         }
 
         function updateRoutingUI() {
+            // Posisi tujuan tiap output pada diagram SVG (viewBox 600 x 180).
+            const outputY = { 1: 28, 2: 74, 3: 112, 4: 158 };
+
             for (let i = 1; i <= 4; i++) {
                 const out = globalState[i];
                 const leftNode = document.getElementById('route-' + i + '-L');
                 const rightNode = document.getElementById('route-' + i + '-R');
                 if (!out || !leftNode || !rightNode) continue;
+
                 const routing = Number.isInteger(out.routing) ? out.routing : 3;
-                leftNode.classList.toggle('active', routing === 0 || routing === 2);
-                rightNode.classList.toggle('active', routing === 1 || routing === 2);
+                const leftActive = routing === 0 || routing === 2;
+                const rightActive = routing === 1 || routing === 2;
+                leftNode.classList.toggle('active', leftActive);
+                rightNode.classList.toggle('active', rightActive);
+
+                // Garis diagram mengikuti matrix: 0=L, 1=R, 2=L+R, 3=OFF.
+                [['L', leftActive, 45], ['R', rightActive, 135]].forEach(([channel, active, sourceY]) => {
+                    const path = document.getElementById('route-flow-' + i + '-' + channel);
+                    if (!path) return;
+                    const targetY = outputY[i];
+                    path.setAttribute('d', active
+                        ? 'M18 ' + sourceY + ' H170 Q195 ' + sourceY + ' 195 ' + targetY + ' H410'
+                        : '');
+                    path.style.opacity = active ? '0.95' : '0';
+                });
+
                 const label = document.getElementById('routing-status-' + i);
                 const bar = document.getElementById('routing-status-bar-' + i);
                 if (label) label.textContent = routing === 0 ? 'L' : routing === 1 ? 'R' : routing === 2 ? 'L+R' : 'OFF';
