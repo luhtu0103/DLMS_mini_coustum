@@ -232,11 +232,13 @@
                     const parsedLevel = parseInt(parts[2], 10);
                     const level = Number.isFinite(parsedLevel) ? Math.min(100, Math.max(0, parsedLevel)) : 0;
                     const monitorTarget = target === 'inl' ? 'inL' : target === 'inr' ? 'inR' : target;
+                    // LEVEL from firmware is encoded as dBFS + 60 (0..60). Convert to percent only for meters.
+                    const levelPercent = Math.round(Math.max(0, Math.min(60, level)) / 60 * 100);
                     if (monitorActive && METER_CHANNELS.includes(monitorTarget)) { updateMeterVisual(monitorTarget, level); updateRmsDisplay(); }
-                    document.querySelectorAll('[data-meter="' + target + '"]').forEach(el => { updateBarVisual(el, level); });
+                    document.querySelectorAll('[data-meter="' + target + '"]').forEach(el => { updateBarVisual(el, levelPercent); });
                     if (target.startsWith('out')) {
                         const chId = parseInt(target.replace('out',''), 10);
-                        if (chId >= 1 && chId <= 4) updateStripMeter(chId, level);
+                        if (chId >= 1 && chId <= 4) updateStripMeter(chId, levelPercent);
                     }
                 }
             }
@@ -383,7 +385,7 @@
                 ctx.beginPath();
                 data.forEach((value, i) => {
                     const x = i * (w / (data.length - 1));
-                    const y = h - (value / 100) * h;
+                    const y = (value / 100) * h; // Firmware maps positive samples toward 0; keep polarity consistent with input scope.
                     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 });
                 ctx.strokeStyle = color;
@@ -1047,23 +1049,40 @@ function drawMonitorScope(){
  for(let i=1;i<6;i++){scopeCtx.beginPath();scopeCtx.moveTo(w*i/6,0);scopeCtx.lineTo(w*i/6,h);scopeCtx.stroke();}
  scopeCtx.strokeStyle='#2a3a5a';scopeCtx.setLineDash([4,4]);scopeCtx.beginPath();scopeCtx.moveTo(0,h/2);scopeCtx.lineTo(w,h/2);scopeCtx.stroke();scopeCtx.setLineDash([]);
  const values=currentOscData,step=w/Math.max(1,values.length-1);
- [['#00ff88',0],['#00e5ff',5]].forEach(([color,offset])=>{
-  scopeCtx.strokeStyle=color;scopeCtx.lineWidth=1.5;scopeCtx.shadowBlur=5;scopeCtx.shadowColor=color;scopeCtx.beginPath();
-  values.forEach((v,i)=>{const y=((Math.max(0,Math.min(100,v+offset)))/100)*h;if(i===0)scopeCtx.moveTo(0,y);else scopeCtx.lineTo(i*step,y);});scopeCtx.stroke();
- });scopeCtx.shadowBlur=0;
+ // Firmware sends one OSC stream from input L. Do not draw a shifted duplicate as fake input R.
+ scopeCtx.strokeStyle='#00e5ff';scopeCtx.lineWidth=1.8;scopeCtx.shadowBlur=4;scopeCtx.shadowColor='#00e5ff';scopeCtx.beginPath();
+ values.forEach((v,i)=>{const y=((Math.max(0,Math.min(100,v)))/100)*h;if(i===0)scopeCtx.moveTo(0,y);else scopeCtx.lineTo(i*step,y);});
+ scopeCtx.stroke();scopeCtx.shadowBlur=0;
 }
 function updatePeakHolds(){METER_CHANNELS.forEach(ch=>{const el=document.getElementById('peak-'+ch);if(!el)return;peakHoldValues[ch]=peakHoldValues[ch]>currentLevels[ch]?Math.max(currentLevels[ch],peakHoldValues[ch]-.25):currentLevels[ch];el.style.bottom=peakHoldValues[ch]+'%';});}
-function updateMeterVisual(channel,level){
- if(!METER_CHANNELS.includes(channel))return;currentLevels[channel]=level;
- const wrap=document.getElementById('meter-'+channel);if(!wrap)return;
- const segs=wrap.querySelectorAll('.meter-segment'),count=Math.round(level/100*segs.length);
- segs.forEach((seg,i)=>{seg.className='meter-segment';if(i<count){const ratio=(i+1)/segs.length;seg.classList.add(ratio>.85?'peak':ratio>.65?'warn':'on');}});
- const dbEl=document.getElementById('db-'+channel);if(dbEl){const db=level>0?Math.round((level-100)/1.6):-99;dbEl.textContent=db>-99?db+' dB':'-∞';}
- if(level>98){const now=Date.now();if(now-lastClipTime>500){clipCounter++;lastClipTime=now;const el=document.getElementById('clip-count');if(el){el.textContent=clipCounter;el.className='value clip-alert';setTimeout(()=>{if(el)el.className='value';},1000);}}}
+function updateMeterVisual(channel,rawLevel){
+ if(!METER_CHANNELS.includes(channel))return;
+ // Firmware LEVEL is dBFS + 60, not a 0..100 percentage.
+ const code=Math.max(0,Math.min(60,Number(rawLevel)||0));
+ const level=Math.round(code/60*100);
+ currentLevels[channel]=level;
+ const wrap=document.getElementById('meter-'+channel);
+ if(wrap){
+  const segs=wrap.querySelectorAll('.meter-segment'),count=Math.round(level/100*segs.length);
+  segs.forEach((seg,i)=>{seg.className='meter-segment';if(i<count){const ratio=(i+1)/segs.length;seg.classList.add(ratio>.85?'peak':ratio>.65?'warn':'on');}});
+ }
+ const dbEl=document.getElementById('db-'+channel);
+ if(dbEl)dbEl.textContent=code>0?(code-60).toFixed(0)+' dBFS':'-∞ dBFS';
+ // Near full scale means within roughly 2 dB of 0 dBFS.
+ if(code>=58){const now=Date.now();if(now-lastClipTime>500){clipCounter++;lastClipTime=now;const el=document.getElementById('clip-count');if(el){el.textContent=clipCounter;el.className='value clip-alert';setTimeout(()=>{if(el)el.className='value';},1000);}}}
 }
 function updateSpectrumMini(values){currentSpectrum=values;let peak=0;values.slice(0,7).forEach((v,i)=>{const bar=document.getElementById('sm-bar-'+i);if(bar){const p=Math.max(2,v);bar.style.height=p+'%';bar.style.background=p>85?'var(--neon-red)':p>65?'var(--neon-yellow)':p>40?'var(--neon-green)':'var(--neon-blue)';}peak=Math.max(peak,v);});const label=document.getElementById('spectrum-peak-label');if(label)label.textContent='PEAK: '+peak+'%';}
 function updateOscData(values){if(!scopeFrozen&&values.length)currentOscData=values.slice();}
-function updateRmsDisplay(){const avg=(currentLevels.inL+currentLevels.inR)/2;const el=document.getElementById('rms-display');if(el){const db=avg>0?Math.round((avg-100)/1.6):-99;el.textContent=db>-99?db+' dB':'-∞ dB';}}
+function updateRmsDisplay(){
+ const el=document.getElementById('rms-display');if(!el)return;
+ const l=currentLevels.inL||0,r=currentLevels.inR||0;
+ if(l<=0&&r<=0){el.textContent='-∞ dBFS';return;}
+ // Convert the two displayed RMS dBFS estimates to linear power before averaging.
+ const dbL=l>0?(l/100*60-60):-60,dbR=r>0?(r/100*60-60):-60;
+ const power=(Math.pow(10,dbL/10)+Math.pow(10,dbR/10))/2;
+ const db=power>0?10*Math.log10(power):-Infinity;
+ el.textContent=Number.isFinite(db)?db.toFixed(1)+' dBFS':'-∞ dBFS';
+}
 function toggleScopeFreeze(){scopeFrozen=!scopeFrozen;const btn=document.getElementById('scope-trigger');if(btn){btn.textContent=scopeFrozen?'❄ FROZEN':'▶ AUTO';btn.classList.toggle('frozen',scopeFrozen);}}
 window.addEventListener('resize',()=>{if(monitorActive)resizeScopeCanvas();});
 
@@ -1485,7 +1504,7 @@ function showToast(msg) {
       }
 
     // === RTA PAGE VARIABLES ===
-    let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaDataArray, rtaStream;
+    let rtaAudioContext, rtaAnalyser, rtaMicrophone, rtaFrequencyDataArray, rtaTimeDataArray, rtaStream;
     let rtaActive = false;
     let rtaSmoothing = 0.8;
     let rtaSensitivity = 5; // 1 = less sensitive, 10 = more sensitive
@@ -1578,7 +1597,7 @@ function showToast(msg) {
                 rtaMicrophone = rtaAudioContext.createMediaStreamSource(rtaStream);
                 rtaMicrophone.connect(rtaAnalyser);
                 
-                rtaDataArray = new Uint8Array(rtaAnalyser.frequencyBinCount);
+                rtaFrequencyDataArray = new Float32Array(rtaAnalyser.frequencyBinCount);\n                rtaTimeDataArray = new Float32Array(rtaAnalyser.fftSize);
                 rtaBands = buildRTABands(rtaAudioContext.sampleRate, rtaAnalyser.fftSize, 16);
                 rtaPeakHold = new Array(16).fill(0);
                 
@@ -1635,64 +1654,51 @@ function showToast(msg) {
     }
 
     function updateRTA16Band() {
-    if (!rtaActive || !rtaPageActive) return;
+    if (!rtaActive || !rtaPageActive || !rtaAnalyser) return;
     requestAnimationFrame(updateRTA16Band);
-    
-    rtaAnalyser.getByteFrequencyData(rtaDataArray);
-    
-    let totalSum = 0;
-    let maxVal = 0;
-    
-    for (let i = 0; i < 16; i++) {
-        let sum = 0, count = 0;
-        for (let j = rtaBands[i][0]; j < rtaBands[i][1] && j < rtaDataArray.length; j++) {
-            sum += rtaDataArray[j];
-            count++;
-        }
-        let avg = count > 0 ? sum / count : 0;
 
-        // Sensitivitas tampilan + noise gate. Ini mengatur grafik RTA, bukan gain fisik mikrofon.
-        const noiseGate = 3 + (10 - rtaSensitivity) * 2.5;
-        if (avg < noiseGate) {
-            avg = 0;
-        } else {
-            const displayGain = 0.65 + (rtaSensitivity * 0.07);
-            avg = Math.min(255, avg * displayGain);
-        }
+    // Use dB frequency data for spectrum bars and time-domain samples for real RMS/peak.
+    rtaAnalyser.getFloatFrequencyData(rtaFrequencyDataArray);
+    rtaAnalyser.getFloatTimeDomainData(rtaTimeDataArray);
 
-        // Clamp percent max 100% agar bar tidak overflow.
-        let percent = Math.min(100, (avg / 255) * 100);
-        
-        // Peak hold (turun perlahan)
-        if (percent > rtaPeakHold[i]) {
-            rtaPeakHold[i] = percent;
-        } else {
-            rtaPeakHold[i] = Math.max(0, rtaPeakHold[i] - 0.5);
-        }
-        
-        let bar = document.getElementById('rta-bar-'+i);
-        if (bar) {
-            // FIX: Clamp height max 100%
-            bar.style.height = Math.max(1, Math.min(100, percent)) + '%';
-            
-            // FIX: Warna sesuai legenda (berdasarkan posisi band, bukan level)
-            if (i < 4) bar.style.background = 'var(--neon-blue)';        // Sub-Bass
-            else if (i < 8) bar.style.background = 'var(--neon-green)';  // Mid
-            else if (i < 12) bar.style.background = 'var(--neon-yellow)'; // High-Mid
-            else bar.style.background = 'var(--neon-red)';               // Treble
-        }
-        
-        totalSum += avg;
-        if (avg > maxVal) maxVal = avg;
+    let sumSquares = 0, peakAbs = 0;
+    for (let i = 0; i < rtaTimeDataArray.length; i++) {
+        const sample = rtaTimeDataArray[i];
+        sumSquares += sample * sample;
+        peakAbs = Math.max(peakAbs, Math.abs(sample));
     }
-    
-    // Update dB display
-    let avgLevel = totalSum / 16;
-    let dbLevel = avgLevel > 0 ? (20 * Math.log10(avgLevel / 255)).toFixed(1) : '-∞';
-    let peakDb = maxVal > 0 ? (20 * Math.log10(maxVal / 255)).toFixed(1) : '-∞';
-    
-    document.getElementById('rta-rms-db').innerText = dbLevel + ' dB';
-    document.getElementById('rta-peak-db').innerText = peakDb + ' dB';
+    const rms = Math.sqrt(sumSquares / Math.max(1, rtaTimeDataArray.length));
+    const rmsDb = rms > 0.000001 ? 20 * Math.log10(rms) : -Infinity;
+    const peakDb = peakAbs > 0.000001 ? 20 * Math.log10(peakAbs) : -Infinity;
+    const rmsEl = document.getElementById('rta-rms-db');
+    const peakEl = document.getElementById('rta-peak-db');
+    if (rmsEl) rmsEl.textContent = Number.isFinite(rmsDb) ? rmsDb.toFixed(1) + ' dBFS' : '-∞ dBFS';
+    if (peakEl) peakEl.textContent = Number.isFinite(peakDb) ? peakDb.toFixed(1) + ' dBFS' : '-∞ dBFS';
+
+    for (let i = 0; i < 16; i++) {
+        let sumDb = 0, count = 0;
+        for (let j = rtaBands[i][0]; j < rtaBands[i][1] && j < rtaFrequencyDataArray.length; j++) {
+            const value = rtaFrequencyDataArray[j];
+            if (Number.isFinite(value) && value > -120) { sumDb += value; count++; }
+        }
+        const avgDb = count ? sumDb / count : -120;
+        // Sensitivity changes only the visualization; it does not change mic gain or displayed dBFS.
+        const displayDb = avgDb + ((rtaSensitivity - 5) * 2);
+        const noiseGateDb = -90 + ((10 - rtaSensitivity) * 1.5);
+        const percent = displayDb < noiseGateDb ? 0 : Math.max(0, Math.min(100, ((displayDb + 90) / 60) * 100));
+
+        if (percent > rtaPeakHold[i]) rtaPeakHold[i] = percent;
+        else rtaPeakHold[i] = Math.max(0, rtaPeakHold[i] - 0.5);
+
+        const bar = document.getElementById('rta-bar-' + i);
+        if (bar) {
+            bar.style.height = Math.max(0, Math.min(100, percent)) + '%';
+            if (i < 4) bar.style.background = 'var(--neon-blue)';
+            else if (i < 8) bar.style.background = 'var(--neon-green)';
+            else if (i < 12) bar.style.background = 'var(--neon-yellow)';
+            else bar.style.background = 'var(--neon-red)';
+        }
+    }
 }
 
     // Mode simulasi: analisis AI berjalan tanpa mengirim perintah ke perangkat.
