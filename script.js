@@ -347,20 +347,18 @@
             for(let i=1; i<=4; i++) {
                 let st = globalState[i];
                 let muteBtn = document.getElementById('dash-mute-out' + i);
-                if(st.isMute) muteBtn.classList.add('active'); else muteBtn.classList.remove('active');
+                if (muteBtn) muteBtn.classList.toggle('active', !!st.isMute);
                 let phaseBtn = document.getElementById('dash-phase-' + i);
-                if(st.phase180) { phaseBtn.classList.add('active'); phaseBtn.innerText = '180°'; } 
-                else { phaseBtn.classList.remove('active'); phaseBtn.innerText = '0°'; }
-                let routeL = document.getElementById('route-' + i + '-L');
-                let routeR = document.getElementById('route-' + i + '-R');
-                if(st.routing === 0) { routeL.classList.add('active'); routeR.classList.remove('active'); }
-                else if(st.routing === 1) { routeL.classList.remove('active'); routeR.classList.add('active'); }
-                else { routeL.classList.add('active'); routeR.classList.add('active'); }
+                if (phaseBtn) {
+                    phaseBtn.classList.toggle('active', !!st.phase180);
+                    phaseBtn.innerText = st.phase180 ? '180°' : '0°';
+                }
                 let volSlider = document.getElementById('dash-vol-' + i);
                 if(volSlider) volSlider.value = st.gain;
                 let volLabel = document.getElementById('val-o' + i);
                 if(volLabel) volLabel.innerText = st.gain + ' dB';
             }
+            updateRoutingUI();
             updateDashboardGraph();
         }
 
@@ -654,6 +652,37 @@
             if(settingBtn && currentOut == outNum) { if(is180) { settingBtn.classList.add('active'); settingBtn.innerText='180°'; } else { settingBtn.classList.remove('active'); settingBtn.innerText='0°'; } }
         }
 
+        function setRouting(outNum, channel, toggle) {
+            if (outNum < 1 || outNum > 4 || !globalState[outNum]) return;
+            const out = globalState[outNum];
+            let newRouting = Number.isInteger(out.routing) ? out.routing : 3;
+            if (toggle && channel === 'L') {
+                if (newRouting === 1) newRouting = 2;
+                else if (newRouting === 2) newRouting = 3;
+                else if (newRouting === 3) newRouting = 0;
+                else newRouting = 0;
+            } else if (toggle && channel === 'R') {
+                if (newRouting === 0) newRouting = 2;
+                else if (newRouting === 2) newRouting = 3;
+                else if (newRouting === 3) newRouting = 1;
+                else newRouting = 1;
+            } else return;
+            out.routing = newRouting;
+            sendBLEData('OUT' + outNum + '_ROUTING,' + newRouting);
+            updateRoutingUI();
+        }
+
+        function updateRoutingUI() {
+            for (let i = 1; i <= 4; i++) {
+                const out = globalState[i];
+                const leftNode = document.getElementById('route-' + i + '-L');
+                const rightNode = document.getElementById('route-' + i + '-R');
+                if (!out || !leftNode || !rightNode) continue;
+                leftNode.classList.toggle('active', out.routing === 0 || out.routing === 2);
+                rightNode.classList.toggle('active', out.routing === 1 || out.routing === 2);
+            }
+        }
+
         function toggleRouting(btn, outNum, isRight) { 
             btn.classList.toggle('active'); 
             let isL = document.getElementById('route-' + outNum + '-L').classList.contains('active');
@@ -930,6 +959,7 @@ function showPage(pageId) {
             if (pageId !== 'page-rta' && rtaActive) toggleRTA();
             rtaPageActive = (pageId === 'page-rta');
             if (pageId === 'page-front') syncDashboardUI();
+            if (pageId === 'page-routing') updateRoutingUI();
             if (pageId === 'page-quick') requestAnimationFrame(() => buildMixer());
             if (pageId === 'page-presets') refreshEffectsPage();
             if (pageId === 'page-test-tone') initTestTonePage();
