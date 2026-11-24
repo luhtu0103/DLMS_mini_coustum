@@ -938,9 +938,6 @@ function initTestTonePage(){
     setToneMode('off');
     setToneFreq(currentToneFreq);
 }
-function showQuickNotice(name){alert(name+' belum tersedia.')}
-
-
 function isSystemBLEConnected(){return isBLEConnected();}
 function saveToNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('SAVE_TO_NVS,1');showToast('Permintaan simpan dikirim; perlu dukungan firmware.');}
 function loadFromNVS(){if(!isSystemBLEConnected()){showToast('⚠️ BLE belum terhubung!');return;}sendBLEData('LOAD_FROM_NVS,1');showToast('Permintaan muat dikirim; perlu dukungan firmware.');}
@@ -1455,9 +1452,8 @@ function showToast(msg) {
     let rtaBands = [];
 
     function openRTAPage() {
-        rtaPageActive = true;
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById('page-rta').classList.add('active');
+        // Gunakan satu jalur navigasi agar display inline dan status halaman konsisten.
+        showPage('page-rta');
     }
 
     function closeRTAPage() {
