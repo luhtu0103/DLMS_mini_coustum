@@ -820,9 +820,42 @@
                 const leftNode = document.getElementById('route-' + i + '-L');
                 const rightNode = document.getElementById('route-' + i + '-R');
                 if (!out || !leftNode || !rightNode) continue;
-                leftNode.classList.toggle('active', out.routing === 0 || out.routing === 2);
-                rightNode.classList.toggle('active', out.routing === 1 || out.routing === 2);
+                const routing = Number.isInteger(out.routing) ? out.routing : 3;
+                leftNode.classList.toggle('active', routing === 0 || routing === 2);
+                rightNode.classList.toggle('active', routing === 1 || routing === 2);
+                const label = document.getElementById('routing-status-' + i);
+                const bar = document.getElementById('routing-status-bar-' + i);
+                if (label) label.textContent = routing === 0 ? 'L' : routing === 1 ? 'R' : routing === 2 ? 'L+R' : 'OFF';
+                if (bar) {
+                    bar.style.width = routing === 3 ? '0%' : routing === 2 ? '100%' : '62%';
+                    bar.classList.toggle('inactive', routing === 3);
+                    bar.classList.toggle('sum', routing === 2);
+                }
             }
+        }
+
+        function routingScrollTo(sectionId, button) {
+            const target = document.getElementById(sectionId);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            document.querySelectorAll('#page-routing .routing-tool').forEach(item => item.classList.toggle('active', item === button));
+        }
+
+        function applyRoutingPreset(mode, button) {
+            const presets = {
+                stereo: [0, 1, 3, 3],
+                dual: [0, 1, 0, 1],
+                sum: [2, 2, 2, 2],
+                reset: [0, 1, 0, 1]
+            };
+            const values = presets[mode];
+            if (!values || !globalState) return;
+            for (let i = 1; i <= 4; i++) {
+                if (!globalState[i]) continue;
+                globalState[i].routing = values[i - 1];
+                sendBLEData('OUT' + i + '_ROUTING,' + values[i - 1]);
+            }
+            document.querySelectorAll('#routing-quick-setup .routing-preset').forEach(item => item.classList.toggle('active', item === button));
+            updateRoutingUI();
         }
 
         function toggleRouting(btn, outNum, isRight) { 
