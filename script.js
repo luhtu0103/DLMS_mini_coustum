@@ -2028,7 +2028,7 @@ if (document.readyState === 'loading') {
         function updatePresetButtons(activeNum) { for(let i=1; i<=4; i++) { const btn = document.getElementById('preset-btn-p' + i) || document.getElementById('btn-p' + i); if(btn) btn.classList.toggle('active', i === activeNum); } }
         
         // === TEST TONE / SIGNAL GENERATOR ===
-let currentToneMode = 'off';
+currentToneMode = 'off';
 let currentToneFreq = 1000;
 let currentToneVolume = -12;
 function formatFreq(freq){return freq>=1000?(freq/1000).toFixed(freq%1000===0?0:1)+' kHz':freq+' Hz'}
