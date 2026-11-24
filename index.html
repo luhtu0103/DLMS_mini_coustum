@@ -6,7 +6,7 @@
     <title>DLMS CUSTOM - Final V20 (RTA Mic + PWA)</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00e5ff">
-    <link rel="stylesheet" href="style.css?v=20261124-dsp-sync-v2">
+    <link rel="stylesheet" href="style.css?v=20261124-ble-reconnect-info-v3">
 </head>
 <body>
 
@@ -398,12 +398,12 @@
 </div></div>
 <div class="sys-section"><div class="sys-section-title">ℹ️ INFO</div><div class="sys-info-box">
 <div class="sys-info-row"><span class="sys-info-label">📱 APP</span><span class="sys-info-value">DLMS CUSTOM</span></div>
-<div class="sys-info-row"><span class="sys-info-label">🔌 FIRMWARE</span><span class="sys-info-value" id="sys-fw-ver">Tidak terdeteksi</span></div>
+<div class="sys-info-row"><span class="sys-info-label">🔌 FIRMWARE</span><span class="sys-info-value" id="sys-fw-ver">Belum terhubung</span></div>
 <div class="sys-info-row"><span class="sys-info-label">📡 BLE</span><span class="sys-info-value disconnected" id="sys-ble-status">DISCONNECTED</span></div>
 <div class="sys-info-row"><span class="sys-info-label">🎛️ MODE</span><span class="sys-info-value">BI-AMP 4-CH</span></div>
-<div class="sys-info-row"><span class="sys-info-label">🎵 SAMPLE RATE</span><span class="sys-info-value">48 kHz*</span></div>
+<div class="sys-info-row"><span class="sys-info-label">🎵 SAMPLE RATE</span><span class="sys-info-value" id="sys-sample-rate">Belum terdeteksi</span></div>
 <div class="sys-info-row"><span class="sys-info-label">📦 PRESETS</span><span class="sys-info-value" id="sys-preset-count">0/4 saved</span></div>
-</div><div style="font-size:8px;color:var(--text-dim);margin-top:4px">*Sample rate belum dibaca langsung dari firmware.</div></div>
+</div><div style="font-size:8px;color:var(--text-dim);margin-top:4px">Versi firmware dan sample rate ditampilkan setelah perangkat mengirim INFO melalui BLE.</div></div>
 </div></div>
 
 <!-- ================= HALAMAN: MONITOR ================= -->
@@ -586,7 +586,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261124-dsp-sync-v2"></script>
+    <script src="script.js?v=20261124-ble-reconnect-info-v3"></script>
 
     
 
