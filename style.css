@@ -500,3 +500,19 @@ body {
   color: var(--text-dim);
   opacity: 0.3;
 }
+
+
+/* Oscilloscope 4 output */
+.osc-container { flex: 1.8; display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:#03060a; border:1px solid #1a2a40; border-radius:4px; }
+.osc-header { min-height:28px; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; background:#0d1627; border-bottom:1px solid #1a2a40; color:var(--neon-blue); font:700 10px/1.2 monospace; letter-spacing:.7px; }
+.osc-freeze-btn { border:1px solid var(--neon-blue); border-radius:3px; padding:4px 7px; color:var(--neon-blue); background:transparent; font:700 9px monospace; cursor:pointer; white-space:nowrap; }
+.osc-freeze-btn.active { background:var(--neon-blue); color:#001018; }
+#osc-canvas { display:block; width:100%; height:100%; min-height:0; flex:1; background:#03060a; }
+.osc-legend { display:flex; align-items:center; justify-content:center; gap:clamp(5px,1.5vw,16px); flex-wrap:wrap; padding:6px 4px; background:#0d1627; border-top:1px solid #1a2a40; }
+.osc-legend-item { display:flex; align-items:center; gap:4px; padding:3px 4px; border:0; background:transparent; color:#d5deed; font:700 9px monospace; cursor:pointer; }
+.osc-legend-item.hidden { opacity:.35; text-decoration:line-through; }
+.osc-dot { display:inline-block; width:7px; height:7px; border-radius:50%; }
+.osc-dot.out1 { background:var(--color-out1,#00e5ff); }
+.osc-dot.out2 { background:var(--color-out2,#ff9100); }
+.osc-dot.out3 { background:var(--color-out3,#00ff88); }
+.osc-dot.out4 { background:var(--color-out4,#ff0033); }
