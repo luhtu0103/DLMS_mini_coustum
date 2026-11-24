@@ -234,6 +234,11 @@ bool loadFromNVS() {
     Serial.println("❌ NVS open for read failed");
     return false;
   }
+  if (!preferences.isKey("m_vol")) {
+    preferences.end();
+    Serial.println("⚠️ No saved DSP state found in NVS");
+    return false;
+  }
   if (preferences.isKey("m_vol")) {
     master_volume = safeNvsFloat(preferences.getFloat("m_vol", 0.0f), 0.0f, -60.0f, 0.0f);
     master_linear_cached = powf(10.0f, master_volume / 20.0f);
