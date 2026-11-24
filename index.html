@@ -102,12 +102,12 @@
                 <div class="graph-utils"><button class="util-btn mute" onclick="toggleMute(this, 'OUT' + currentOut)">MUTE</button><button class="util-btn phase" onclick="togglePhase(this, currentOut)">0°</button></div>
             </div>
             <div class="controls-col">
-                <button class="reset-btn" style="margin-top: 0; margin-bottom: 4px; padding: 4px;" onclick="resetToDefault()">↺ RESET OUT INI KE STANDAR</button>
                 <div class="out-tabs">
                   <button class="out-tab-btn active" data-tab="filter" onclick="switchOutTab('filter')">FILTER</button>
                   <button class="out-tab-btn" data-tab="eq" onclick="switchOutTab('eq')">EQ</button>
                   <button class="out-tab-btn" data-tab="dynamics" onclick="switchOutTab('dynamics')">DYNAMICS</button>
                   <button class="out-tab-btn" data-tab="delay" onclick="switchOutTab('delay')">DELAY</button>
+                  <button class="reset-btn out-reset-btn" type="button" title="Reset pengaturan output ini ke standar" onclick="resetToDefault()">↺ RESET</button>
                 </div>
                 <div class="out-tab-content">
                   <div class="out-tab-panel active" id="tab-filter"><div class="control-card">
