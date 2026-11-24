@@ -1307,7 +1307,7 @@ body {
 #page-routing .diagram-output.out3 { border-color:#00d88b; color:#00e99a; }
 #page-routing .diagram-output.out4 { border-color:#f52b4e; color:#ff4564; }
 #page-routing .routing-flow-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
-#page-routing .flow-line { fill:none; stroke-width:2.5; stroke-linecap:round; opacity:.85; }
+#page-routing .flow-line { fill:none; stroke-width:2.7; stroke-linecap:round; stroke-linejoin:round; opacity:.85; filter:drop-shadow(0 0 2px currentColor); transition:opacity .18s,stroke-width .18s; }\n#page-routing .flow-l { color:#00c9ff; }\n#page-routing .flow-r { color:#00e88c; }\n#page-routing .flow-line.flow-active { stroke-dasharray:7 4; animation:routing-flow-pulse 1.8s linear infinite; }\n@keyframes routing-flow-pulse { to { stroke-dashoffset:-22; } }
 #page-routing .flow-l { stroke:#00c9ff; }
 #page-routing .flow-r { stroke:#00e88c; }
 #page-routing .flow-junction { fill:#00e7f5; filter:drop-shadow(0 0 4px #00e7f5); }
