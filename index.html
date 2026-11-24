@@ -6,7 +6,7 @@
     <title>DLMS CUSTOM - Final V20 (RTA Mic + PWA)</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00e5ff">
-    <link rel="stylesheet" href="style.css?v=20261124-monitor-room1">
+    <link rel="stylesheet" href="style.css?v=20261124-routing-pro1">
 </head>
 <body>
 
@@ -455,23 +455,85 @@
 
 <!-- ================= HALAMAN: ROUTING ================= -->
 <div id="page-routing" class="page">
-  <div class="sub-page-header">
+  <div class="sub-page-header routing-header">
     <button class="back-btn" onclick="showPage('page-front')">⬅ DASHBOARD</button>
-    <div class="sub-page-title">ROUTING</div>
+    <div class="sub-page-title">⌘ ROUTING</div>
     <button class="guide-header-btn" onclick="showPage('page-guide')">?</button>
   </div>
-  <div class="sub-page-content">
-    <div class="feature-card">
-      <div class="feature-card-title">OUTPUT ROUTING</div>
-      <div class="routing-grid">
-        <div></div><div style="font-size:8px;font-weight:bold;color:var(--neon-blue)">OUT 1</div><div style="font-size:8px;font-weight:bold;color:var(--neon-blue)">OUT 2</div><div style="font-size:8px;font-weight:bold;color:var(--neon-blue)">OUT 3</div><div style="font-size:8px;font-weight:bold;color:var(--neon-blue)">OUT 4</div>
-        <div style="font-size:8px;font-weight:bold;color:var(--neon-yellow)">L</div>
-        <div class="route-node" id="route-1-L" onclick="setRouting(1, 'L', true)"></div><div class="route-node" id="route-2-L" onclick="setRouting(2, 'L', true)"></div><div class="route-node" id="route-3-L" onclick="setRouting(3, 'L', true)"></div><div class="route-node" id="route-4-L" onclick="setRouting(4, 'L', true)"></div>
-        <div style="font-size:8px;font-weight:bold;color:var(--neon-yellow)">R</div>
-        <div class="route-node" id="route-1-R" onclick="setRouting(1, 'R', true)"></div><div class="route-node" id="route-2-R" onclick="setRouting(2, 'R', true)"></div><div class="route-node" id="route-3-R" onclick="setRouting(3, 'R', true)"></div><div class="route-node" id="route-4-R" onclick="setRouting(4, 'R', true)"></div>
+
+  <div class="routing-toolbar" role="tablist" aria-label="Routing navigation">
+    <button class="routing-tool active" onclick="routingScrollTo('routing-matrix', this)">⌁ OUTPUT ROUTING</button>
+    <button class="routing-tool" onclick="routingScrollTo('routing-matrix', this)">▦ MATRIX VIEW</button>
+    <button class="routing-tool" onclick="routingScrollTo('routing-quick-setup', this)">▱ PRESET</button>
+  </div>
+
+  <div class="routing-pro-layout">
+    <aside class="routing-side-panel">
+      <section class="routing-panel">
+        <h3>〰 INPUT SOURCE</h3>
+        <div class="routing-source-pill active"><span class="source-dot"></span><span><b>L (Left)</b><small>Input channel kiri</small></span></div>
+        <div class="routing-source-pill"><span class="source-dot"></span><span><b>R (Right)</b><small>Input channel kanan</small></span></div>
+        <div class="routing-source-pill sum-source"><span class="source-dot"></span><span><b>SUM (L + R)</b><small>Gabungan mono</small></span></div>
+      </section>
+
+      <section class="routing-panel" id="routing-quick-setup">
+        <h3>ϟ QUICK SETUP</h3>
+        <button class="routing-preset active" onclick="applyRoutingPreset('stereo', this)"><span class="preset-icon">↔</span><span><b>STEREO</b><small>L → O1, R → O2</small></span></button>
+        <button class="routing-preset" onclick="applyRoutingPreset('dual', this)"><span class="preset-icon">◫</span><span><b>DUAL MONO</b><small>L → O1 &amp; O3, R → O2 &amp; O4</small></span></button>
+        <button class="routing-preset" onclick="applyRoutingPreset('sum', this)"><span class="preset-icon">Σ</span><span><b>SUM (L+R) TO ALL</b><small>Gabungkan input ke semua output</small></span></button>
+        <button class="routing-preset reset-routing" onclick="applyRoutingPreset('reset', this)"><span class="preset-icon">↺</span><span><b>RESET ROUTING</b><small>Kembalikan konfigurasi awal</small></span></button>
+      </section>
+    </aside>
+
+    <main class="routing-main-panel routing-panel" id="routing-matrix">
+      <h3>▦ ROUTING MATRIX <span>(INPUT → OUTPUT)</span></h3>
+      <div class="routing-matrix-wrap">
+        <div class="routing-matrix-grid">
+          <div class="matrix-corner">INPUT \ OUTPUT</div>
+          <div class="matrix-output out1">OUT 1</div><div class="matrix-output out2">OUT 2</div><div class="matrix-output out3">OUT 3</div><div class="matrix-output out4">OUT 4</div>
+          <div class="matrix-input">L (Left)</div>
+          <button class="route-node" id="route-1-L" aria-label="Toggle input L to output 1" onclick="setRouting(1, 'L', true)"></button>
+          <button class="route-node" id="route-2-L" aria-label="Toggle input L to output 2" onclick="setRouting(2, 'L', true)"></button>
+          <button class="route-node" id="route-3-L" aria-label="Toggle input L to output 3" onclick="setRouting(3, 'L', true)"></button>
+          <button class="route-node" id="route-4-L" aria-label="Toggle input L to output 4" onclick="setRouting(4, 'L', true)"></button>
+          <div class="matrix-input">R (Right)</div>
+          <button class="route-node" id="route-1-R" aria-label="Toggle input R to output 1" onclick="setRouting(1, 'R', true)"></button>
+          <button class="route-node" id="route-2-R" aria-label="Toggle input R to output 2" onclick="setRouting(2, 'R', true)"></button>
+          <button class="route-node" id="route-3-R" aria-label="Toggle input R to output 3" onclick="setRouting(3, 'R', true)"></button>
+          <button class="route-node" id="route-4-R" aria-label="Toggle input R to output 4" onclick="setRouting(4, 'R', true)"></button>
+        </div>
       </div>
-      <div style="font-size:7px;color:var(--text-dim);margin-top:8px;text-align:center">Klik node untuk toggle routing: L, R, atau SUM (L+R)</div>
-    </div>
+      <div class="routing-diagram" aria-label="Diagram alur routing">
+        <div class="diagram-inputs"><span class="diagram-source source-l">L</span><span class="diagram-source source-r">R</span></div>
+        <svg class="routing-flow-svg" viewBox="0 0 600 180" preserveAspectRatio="none" aria-hidden="true">
+          <path class="flow-line flow-l" d="M18 45 H170 Q195 45 195 28 H410"/>
+          <path class="flow-line flow-l" d="M18 45 H170 Q195 45 195 74 H410"/>
+          <path class="flow-line flow-r" d="M18 135 H170 Q195 135 195 112 H410"/>
+          <path class="flow-line flow-r" d="M18 135 H170 Q195 135 195 158 H410"/>
+          <circle class="flow-junction" cx="195" cy="90" r="4"/>
+        </svg>
+        <div class="diagram-outputs">
+          <span class="diagram-output out1">OUT 1</span><span class="diagram-output out2">OUT 2</span><span class="diagram-output out3">OUT 3</span><span class="diagram-output out4">OUT 4</span>
+        </div>
+      </div>
+      <p class="routing-hint">Klik kotak pada matrix untuk mengaktifkan atau memutus routing. Perubahan dikirim ke ESP32 melalui BLE.</p>
+    </main>
+
+    <aside class="routing-side-panel routing-right-panel">
+      <section class="routing-panel">
+        <h3>▥ OUTPUT STATUS</h3>
+        <div class="routing-status-row"><span class="status-output out1">OUT 1</span><b id="routing-status-1">L</b><span class="routing-status-track"><i id="routing-status-bar-1"></i></span></div>
+        <div class="routing-status-row"><span class="status-output out2">OUT 2</span><b id="routing-status-2">R</b><span class="routing-status-track"><i id="routing-status-bar-2"></i></span></div>
+        <div class="routing-status-row"><span class="status-output out3">OUT 3</span><b id="routing-status-3">L</b><span class="routing-status-track"><i id="routing-status-bar-3"></i></span></div>
+        <div class="routing-status-row"><span class="status-output out4">OUT 4</span><b id="routing-status-4">R</b><span class="routing-status-track"><i id="routing-status-bar-4"></i></span></div>
+      </section>
+      <section class="routing-panel routing-info-panel">
+        <h3>ⓘ INFORMASI</h3>
+        <p>• Klik kotak pada matrix untuk mengubah jalur sinyal.</p>
+        <p>• Gunakan Quick Setup untuk konfigurasi cepat.</p>
+        <p>• SUM (L+R) menggabungkan sinyal L dan R menjadi mono.</p>
+      </section>
+    </aside>
   </div>
 </div>
 
@@ -544,7 +606,7 @@
         </div>
     </div>
 
-    <script src="script.js?v=20261124-monitor-room1"></script>
+    <script src="script.js?v=20261124-routing-pro1"></script>
 
     
 
