@@ -266,10 +266,12 @@
         }
 
         function toggleGraphMode() {
-            graphMode = (graphMode === 'RTA') ? 'OSC' : 'RTA';
             const toggleBtn = document.getElementById('graph-mode-toggle');
             const rtaGroup = document.getElementById('dash-rta-bars');
             const oscLine = document.getElementById('dash-osc-line');
+            // Kontrol mode grafik lama tidak ada pada dashboard canvas saat ini.
+            if (!toggleBtn || !rtaGroup || !oscLine) return;
+            graphMode = (graphMode === 'RTA') ? 'OSC' : 'RTA';
             if (graphMode === 'RTA') {
                 toggleBtn.innerText = 'MODE: RTA';
                 rtaGroup.style.opacity = '0.4';
@@ -282,7 +284,9 @@
         }
 
         function drawOscilloscope() {
+            // Renderer SVG lama: abaikan jika dashboard sudah memakai canvas.
             const oscLine = document.getElementById('dash-osc-line');
+            if (!oscLine) return;
             let path = 'M 0 100 ';
             const step = 200 / (oscData.length - 1);
             for (let i = 0; i < oscData.length; i++) {
@@ -480,6 +484,8 @@
         }
 
         function updateDashboardGraph() {
+            // Dashboard kini memakai canvas; jangan jalankan renderer SVG lama jika SVG tidak ada.
+            if (!document.getElementById('dash-path-out1')) return;
             for(let i = 1; i <= 4; i++) {
                 let st = globalState[i];
                 let hpfX = st.hpfOn ? ((parseInt(st.hpfFreq) - 20) / 1980) * 150 : 0;
