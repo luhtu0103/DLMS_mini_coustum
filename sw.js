@@ -1,11 +1,11 @@
 // DLMS Mini Service Worker - Version 22
-const CACHE_NAME = 'dlms-v27';
+const CACHE_NAME = 'dlms-v28';
 const BASE_PATH = '/DLMS_mini_coustum/';
 const ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html',
-  BASE_PATH + 'style.css?v=20261124-state-sync-v1',
-  BASE_PATH + 'script.js?v=20261124-state-sync-v1',
+  BASE_PATH + 'style.css?v=20261124-notes-fix-v1',
+  BASE_PATH + 'script.js?v=20261124-notes-fix-v1',
   BASE_PATH + 'manifest.json'
 ];
 self.addEventListener('install', event => {
