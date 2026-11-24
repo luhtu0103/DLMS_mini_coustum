@@ -177,7 +177,10 @@ float processOutputChannel(OutputChannel *out, float sigL, float sigR, float mas
 // NVS SAVE / LOAD
 // ==========================================
 void saveToNVS() {
-  preferences.begin("dlms_v11", false);
+  if (!preferences.begin("dlms_v11", false)) {
+    Serial.println("❌ NVS open for write failed");
+    return;
+  }
   preferences.putFloat("m_vol", master_volume);
   preferences.putBool("bypass", global_bypass);
   for (int i = 1; i <= 4; i++) {
@@ -220,7 +223,10 @@ void saveToNVS() {
 }
 
 void loadFromNVS() {
-  preferences.begin("dlms_v11", true);
+  if (!preferences.begin("dlms_v11", true)) {
+    Serial.println("❌ NVS open for read failed");
+    return;
+  }
   if (preferences.isKey("m_vol")) {
     master_volume = preferences.getFloat("m_vol", 0.0f);
     master_linear_cached = powf(10.0f, master_volume / 20.0f);
@@ -286,14 +292,24 @@ class MyServerCallbacks: public BLEServerCallbacks {
 class MyCallbacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     String data = pCharacteristic->getValue().c_str();
+    // The web UI appends LF; some BLE stacks/devices deliver CRLF.
+    // Strip framing whitespace before splitting and parsing the numeric value.
+    data.trim();
+    if (data.length() == 0) return;
+
     int comma = data.indexOf(',');
-    if (comma < 0) return;
+    if (comma <= 0 || comma >= data.length() - 1) return;
+
     String cmd = data.substring(0, comma);
     String valueText = data.substring(comma + 1);
+    cmd.trim();
+    valueText.trim();
+    if (cmd.length() == 0 || valueText.length() == 0) return;
+
     char *endPtr = nullptr;
     float val = strtof(valueText.c_str(), &endPtr);
     // Reject malformed, NaN and infinite numbers before any DSP/state change.
-    if (endPtr == valueText.c_str() || *endPtr != '\\0' || !isfinite(val)) return;
+    if (endPtr == valueText.c_str() || *endPtr != '\0' || !isfinite(val)) return;
 
     if (cmd == "SIG_GEN") { if (val != 0 && val != 1 && val != 2) return; gen_type = (int)val; if(gen_type==2) gen_phase=0.0; }
     else if (cmd == "SIG_FREQ") { if (val < 20 || val > 20000) return; gen_freq = val; gen_phase = 0.0; }
@@ -396,8 +412,20 @@ void audioProcessingTask(void *parameter) {
   size_t bytes_read, bytes_written;
   
   while (true) {
-    i2s_channel_read(rx_handle, rx_buf, sizeof(rx_buf), &bytes_read, portMAX_DELAY);
-    int samples = bytes_read / sizeof(int16_t);
+    const esp_err_t readResult = i2s_channel_read(rx_handle, rx_buf, sizeof(rx_buf), &bytes_read, portMAX_DELAY);
+    if (readResult != ESP_OK || bytes_read < 100 * sizeof(int16_t) || bytes_read > sizeof(rx_buf)) {
+      vTaskDelay(pdMS_TO_TICKS(1));
+      continue;
+    }
+
+    // Process complete stereo frames only; never divide by zero or read past a partial frame.
+    int samples = (int)(bytes_read / sizeof(int16_t));
+    samples &= ~1;
+    if (samples < 100 || samples > (int)(sizeof(rx_buf) / sizeof(rx_buf[0]))) {
+      vTaskDelay(pdMS_TO_TICKS(1));
+      continue;
+    }
+    const size_t validBytes = (size_t)samples * sizeof(int16_t);
     float master_linear = master_linear_cached;
     
     int64_t sumL = 0, sumR = 0;
@@ -470,8 +498,8 @@ void audioProcessingTask(void *parameter) {
       }
     }
 
-    i2s_channel_write(tx0_handle, tx0_buf, bytes_read, &bytes_written, portMAX_DELAY);
-    i2s_channel_write(tx1_handle, tx1_buf, bytes_read, &bytes_written, portMAX_DELAY);
+    i2s_channel_write(tx0_handle, tx0_buf, validBytes, &bytes_written, portMAX_DELAY);
+    i2s_channel_write(tx1_handle, tx1_buf, validBytes, &bytes_written, portMAX_DELAY);
   }
 }
 
