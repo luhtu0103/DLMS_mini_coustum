@@ -891,3 +891,33 @@ body {
     #page-setting .controls-col .out-tab-btn { font-size: 8px; padding-left: 1px; padding-right: 1px; }
     #page-setting .controls-col .out-reset-btn { min-width: 42px; padding-left: 4px; padding-right: 4px; }
 }
+
+
+/* HOTFIX: remove vertical offset from the controls column */
+#page-setting .setting-layout.out-landscape-layout > .controls-col {
+    position: relative !important;
+    top: 0 !important;
+    align-self: stretch !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    transform: none !important;
+    justify-self: stretch !important;
+}
+#page-setting .setting-layout.out-landscape-layout > .col-graph {
+    position: relative !important;
+    top: 0 !important;
+    align-self: stretch !important;
+    margin-top: 0 !important;
+    transform: none !important;
+}
+#page-setting .setting-layout.out-landscape-layout > .col-meters {
+    position: relative !important;
+    top: 0 !important;
+    align-self: stretch !important;
+    margin-top: 0 !important;
+    transform: none !important;
+}
+#page-setting .setting-layout.out-landscape-layout > .controls-col > .out-tabs {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
