@@ -586,16 +586,21 @@ body {
     padding: 4px 8px;
 }
 #page-setting .setting-layout.out-landscape-layout {
-    display: grid;
-    grid-template-columns: 48px minmax(245px, 0.95fr) minmax(220px, 1.35fr);
-    grid-template-rows: minmax(0, 1fr);
-    gap: 7px;
-    flex: 1 1 auto;
+    display: grid !important;
+    grid-template-columns: 48px minmax(0, 0.95fr) minmax(0, 1.35fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    grid-auto-flow: column;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 8px;
     width: 100%;
+    height: auto;
     min-height: 0;
-    height: 100%;
-    padding: 0;
+    flex: 1 1 0;
+    padding: 0 !important;
+    margin: 0;
     overflow: hidden;
+    box-sizing: border-box;
 }
 #page-setting .col-meters {
     grid-column: 1;
@@ -715,8 +720,7 @@ body {
 }
 
 
-/* Output layout fixes: avoid duplicate graph and keep the three columns contained */
-#page-setting .setting-layout.out-landscape-layout { box-sizing: border-box; }
+/* Output layout fixes: keep the three columns contained */
 #page-setting .col-graph .svg-container { flex: 1 1 auto; min-height: 90px; }
 #page-setting .graph-mode-label { color: var(--neon-blue); font-size: 10px; font-weight: 700; }
 #page-setting .meter-label { text-align: center; white-space: nowrap; }
@@ -729,10 +733,6 @@ body {
 
 
 /* Keep controls and response curve as independent side-by-side panels */
-#page-setting .setting-layout.out-landscape-layout {
-    grid-template-columns: 48px minmax(320px, 0.95fr) minmax(380px, 1.4fr);
-    align-items: stretch;
-}
 #page-setting .controls-col {
     grid-column: 2;
     width: 100%;
@@ -742,12 +742,7 @@ body {
     grid-column: 3;
     width: 100%;
 }
-@media (max-width: 760px) {
-    #page-setting .setting-layout.out-landscape-layout {
-        grid-template-columns: 42px minmax(230px, 0.95fr) minmax(260px, 1.1fr);
-        gap: 5px;
-    }
-}
+
 
 
 /* Output controls: reset sejajar dengan tab FILTER/EQ/DYNAMICS/DELAY */
@@ -794,23 +789,7 @@ body {
     width: 100%;
     box-sizing: border-box;
 }
-#page-setting .setting-layout.out-landscape-layout {
-    display: grid !important;
-    grid-template-columns: 48px minmax(0, 0.95fr) minmax(0, 1.35fr) !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    grid-auto-flow: column;
-    align-items: stretch;
-    justify-content: stretch;
-    gap: 8px;
-    width: 100%;
-    height: auto;
-    min-height: 0;
-    flex: 1 1 0;
-    padding: 0 !important;
-    margin: 0;
-    overflow: hidden;
-    box-sizing: border-box;
-}
+
 #page-setting .setting-layout.out-landscape-layout > .col-meters,
 #page-setting .setting-layout.out-landscape-layout > .controls-col,
 #page-setting .setting-layout.out-landscape-layout > .col-graph {
