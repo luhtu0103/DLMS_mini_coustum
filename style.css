@@ -921,3 +921,217 @@ body {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
+
+/* === PERBAIKAN HALAMAN SUB-PAGE AGAR TIDAK KOSONG === */
+.sub-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--panel-bg);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.sub-page-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--neon-blue);
+  text-shadow: 0 0 6px var(--neon-blue);
+  letter-spacing: 0.5px;
+}
+
+.sub-page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 10px;
+  gap: 12px;
+  min-height: 0; /* Mencegah overflow pada flex container */
+}
+
+/* Scrollbar halus untuk sub-page */
+.sub-page-content::-webkit-scrollbar {
+  width: 4px;
+}
+.sub-page-content::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 2px;
+}
+
+/* Card styling untuk konsistensi di semua sub-page */
+.feature-card {
+  background: var(--panel-bg);
+  border: 1px solid #1a2a40;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.feature-card-title {
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--neon-blue);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Scene Cards Grid */
+.scenes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.scene-card {
+  background: #03060a;
+  border: 1px solid #1a2a40;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scene-card:hover {
+  border-color: var(--scene-color, var(--neon-blue));
+  box-shadow: 0 0 10px var(--scene-glow, rgba(0,229,255,0.3));
+}
+
+.scene-card.active {
+  background: var(--scene-color, var(--neon-blue));
+  border-color: var(--scene-color, var(--neon-blue));
+}
+
+.scene-card.active .scene-name,
+.scene-card.active .scene-desc {
+  color: #000;
+}
+
+.scene-icon { font-size: 18px; margin-bottom: 4px; }
+.scene-name { font-size: 10px; font-weight: bold; color: #fff; }
+.scene-desc { font-size: 8px; color: var(--text-dim); }
+
+/* Preset Large Grid */
+.preset-large-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.preset-large-btn {
+  background: #03060a;
+  border: 1px solid #1a2a40;
+  color: var(--text-dim);
+  padding: 10px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-large-btn:hover {
+  border-color: var(--neon-blue);
+  color: var(--neon-blue);
+}
+
+.preset-large-btn.active {
+  background: var(--neon-green);
+  color: #000;
+  border-color: var(--neon-green);
+  box-shadow: 0 0 8px var(--neon-green);
+}
+
+.big-toggle-btn {
+  width: 100%;
+  background: #03060a;
+  border: 1px solid var(--neon-yellow);
+  color: var(--neon-yellow);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.big-toggle-btn.active {
+  background: var(--neon-yellow);
+  color: #000;
+  box-shadow: 0 0 10px var(--neon-yellow);
+}
+
+/* System Page Specific */
+.sys-section { margin-bottom: 12px; }
+.sys-section-title { font-size: 10px; color: var(--text-dim); font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px; }
+.sys-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sys-btn-modern {
+  background: var(--panel-bg);
+  border: 1px solid #1a2a40;
+  color: var(--text-dim);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.sys-btn-modern:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
+.sys-btn-modern .sys-icon { font-size: 18px; }
+.sys-info-box { background: #03060a; border: 1px solid #1a2a40; border-radius: 6px; padding: 10px; }
+.sys-info-row { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 6px; }
+.sys-info-label { color: var(--text-dim); }
+.sys-info-value { color: #fff; font-weight: bold; }
+.sys-info-value.disconnected { color: var(--neon-red); }
+
+/* Notes Page Specific */
+.notes-tabs { display: flex; gap: 4px; margin-bottom: 8px; overflow-x: auto; padding-bottom: 4px; }
+.notes-tab {
+  padding: 6px 12px;
+  font-size: 9px;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 1px solid #1a2a40;
+  background: var(--panel-bg);
+  color: var(--text-dim);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.notes-tab.active { background: var(--neon-blue); color: #000; border-color: var(--neon-blue); }
+.notes-editor-card { border: 1px solid #1a2a40; border-radius: 6px; padding: 10px; background: #03060a; }
+.notes-editor-title { font-size: 10px; font-weight: bold; color: var(--neon-blue); margin-bottom: 8px; }
+.notes-textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  box-sizing: border-box;
+  background: #0d1627;
+  color: #fff;
+  border: 1px solid #1a2a40;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  outline: none;
+}
+.notes-textarea:focus { border-color: var(--neon-blue); }
+.notes-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.notes-action-btn {
+  padding: 6px 12px;
+  border: 1px solid #1a2a40;
+  border-radius: 4px;
+  background: var(--panel-bg);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.notes-action-btn.primary { background: var(--neon-blue); color: #000; border-color: var(--neon-blue); }
+.notes-status { font-size: 8px; color: var(--text-dim); margin-top: 8px; }
