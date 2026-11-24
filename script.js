@@ -1239,16 +1239,40 @@ function clearCurrentNote() {
     saveNotesToStorage();
 }
 function exportNotes() {
-    const textContent = Object.keys(notesData).map(key => '=== ' + NOTE_LABELS[key] + ' ===\n' + (notesData[key] || '')).join('\n\n');
+    // Pastikan isi editor terakhir ikut diekspor, meskipun tombol ditekan sebelum blur.
+    const area = document.getElementById('notes-textarea');
+    if (area) notesData[currentNoteTab] = area.value;
+    saveNotesToStorage();
+
+    const exportedAt = new Date();
+    const dateLabel = exportedAt.toLocaleString('id-ID');
+    const sections = Object.keys(notesData).map(key =>
+        '=== ' + NOTE_LABELS[key] + ' ===\n' + (notesData[key] || '').trim()
+    );
+    const hasNotes = Object.values(notesData).some(value => String(value || '').trim().length > 0);
+    if (!hasNotes) {
+        const status = document.getElementById('notes-status');
+        if (status) status.textContent = 'Belum ada catatan untuk diekspor.';
+        return;
+    }
+
+    // BOM membantu aplikasi teks di Android/Windows membaca UTF-8 dengan benar.
+    const textContent = '\uFEFFDLMS CUSTOM - CATATAN TUNING\nDiekspor: ' + dateLabel +
+        '\n\n' + sections.join('\n\n') + '\n';
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = 'DLMS-notes.txt';
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+
+    // Jangan revoke URL pada frame yang sama; beberapa Android WebView belum sempat membacanya.
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+    const status = document.getElementById('notes-status');
+    if (status) status.textContent = '✓ Ekspor dimulai: DLMS-notes.txt';
 }
 
 function showPage(pageId) {
