@@ -417,7 +417,7 @@
 
 
 /* === NOTES PAGE === */
-.notes-tabs{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;padding-bottom:3px}
+.notes-tabs{display:flex;gap:4px;margin-bottom:8px;overflow-x:auto;padding-bottom:4px}
 .notes-tab{padding:8px 12px;font-size:9px;font-weight:bold;border-radius:4px;border:1px solid #1a2a40;background:var(--panel-bg,#101a2a);color:var(--text-secondary,#9aabc2);white-space:nowrap;cursor:pointer}
 .notes-tab.active{background:var(--neon-blue,#00e5ff);border-color:var(--neon-blue,#00e5ff);color:#07111f}
 .notes-editor-card{border:1px solid #1a2a40;border-radius:8px;padding:10px;background:rgba(10,20,35,.65)}
@@ -431,7 +431,7 @@
 
 
 /* SPECTRUM 4-OUT */
-#page-spectrum{padding:0}#page-spectrum.active{display:flex;flex-direction:column;height:100vh;min-height:0;box-sizing:border-box}
+#page-spectrum{padding:0}#page-spectrum.active{display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box}
 .spec-header{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:6px 10px;background:linear-gradient(90deg,#0d1627,#050a14);border-bottom:1px solid #1a2a40;flex-shrink:0}
 .spec-title{font-size:12px;font-weight:bold;color:var(--neon-blue);text-shadow:0 0 8px var(--neon-blue);letter-spacing:1px}.spec-controls{display:flex;gap:4px}
 .spec-ctrl-btn{padding:4px 8px;font-size:9px;font-weight:bold;border-radius:4px;border:1px solid #1a2a40;background:#03060a;color:var(--text-dim);cursor:pointer}.spec-ctrl-btn.active{border-color:var(--neon-yellow);color:var(--neon-yellow);background:rgba(255,170,0,.1)}
@@ -449,10 +449,6 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
-}
-#page-spectrum.active {
-  height: 100%;
-  min-height: 0;
 }
 @media (max-width: 700px) {
   .header { gap: 4px; min-height: 24px; }
@@ -1060,11 +1056,8 @@ body {
 .sys-btn-modern:hover { border-color: var(--neon-blue); color: var(--neon-blue); }
 .sys-info-box { background: #03060a; border: 1px solid #1a2a40; border-radius: 6px; padding: 10px; }
 .sys-info-row { display: flex; justify-content: space-between; font-size: 9px; margin-bottom: 6px; }
-.sys-info-label { color: var(--text-dim); }
-.sys-info-value { color: #fff; font-weight: bold; }
 
 /* Notes Page Specific */
-.notes-tabs { display: flex; gap: 4px; margin-bottom: 8px; overflow-x: auto; padding-bottom: 4px; }
 .notes-tab {
   padding: 6px 12px;
   font-size: 9px;
@@ -1094,7 +1087,6 @@ body {
   outline: none;
 }
 .notes-textarea:focus { border-color: var(--neon-blue); }
-.notes-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .notes-action-btn {
   padding: 6px 12px;
   border: 1px solid #1a2a40;
