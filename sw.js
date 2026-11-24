@@ -1,40 +1,32 @@
-// DLMS Mini Service Worker - Version 8
-const CACHE_NAME = 'dlms-v8';
+// DLMS Mini Service Worker - Version 9
+const CACHE_NAME = 'dlms-v9';
 const BASE_PATH = '/DLMS_mini_coustum/';
 const ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html',
-  BASE_PATH + 'style.css?v=20261124-fix2',
-  BASE_PATH + 'script.js?v=20261124-fix2',
+  BASE_PATH + 'style.css?v=20261124-navfix1',
+  BASE_PATH + 'script.js?v=20261124-navfix1',
   BASE_PATH + 'manifest.json'
 ];
-
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // One missing optional resource must not prevent the whole worker installing.
     await Promise.all(ASSETS.map(async url => {
       try {
         const response = await fetch(url, { cache: 'reload' });
         if (response.ok) await cache.put(url, response);
-      } catch (error) {
-        console.warn('[SW] Precache skipped:', url, error);
-      }
+      } catch (error) { console.warn('[SW] Precache skipped:', url, error); }
     }));
     await self.skipWaiting();
   })());
 });
-
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys
-      .filter(key => key.startsWith('dlms-') && key !== CACHE_NAME)
-      .map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => key.startsWith('dlms-') && key !== CACHE_NAME).map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
-
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const request = event.request;
@@ -53,11 +45,7 @@ self.addEventListener('fetch', event => {
         const shell = await caches.match(BASE_PATH + 'index.html');
         if (shell) return shell;
       }
-      return new Response('Offline: resource is not cached.', {
-        status: 503,
-        statusText: 'Service Unavailable',
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      });
+      return new Response('Offline: resource is not cached.', { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
   })());
 });
