@@ -98,25 +98,27 @@
         <div class="setting-layout">
             <div class="controls-col">
                 <button class="reset-btn" style="margin-top: 0; margin-bottom: 4px; padding: 4px;" onclick="resetToDefault()">↺ RESET OUT INI KE STANDAR</button>
-                
-                <div class="control-card">
+                <div class="out-tabs">
+                  <button class="out-tab-btn active" data-tab="filter" onclick="switchOutTab('filter')">FILTER</button>
+                  <button class="out-tab-btn" data-tab="eq" onclick="switchOutTab('eq')">EQ</button>
+                  <button class="out-tab-btn" data-tab="dynamics" onclick="switchOutTab('dynamics')">DYNAMICS</button>
+                  <button class="out-tab-btn" data-tab="delay" onclick="switchOutTab('delay')">DELAY</button>
+                </div>
+                <div class="out-tab-content">
+                  <div class="out-tab-panel active" id="tab-filter"><div class="control-card">
                     <div class="card-header"><div class="card-title">HPF</div><div><button class="slope-btn active" onclick="setSlope(this, 'HPF')">24</button><button class="slope-btn" onclick="setSlope(this, 'HPF')">12</button><button class="toggle-switch on" id="hpfToggle" onclick="toggleFilter(this)">ON</button></div></div>
                     <div class="slider-container"><button class="step-btn" onclick="stepValue('hpfFreq', -1)">&lt;</button><input type="range" id="hpfFreq" min="20" max="2000" value="80" oninput="updateGraph()"><button class="step-btn" onclick="stepValue('hpfFreq', 1)">&gt;</button><div class="val-display" id="hpfFreqVal">80Hz</div></div>
-                </div>
-                
-                <div class="control-card">
+                </div><div class="control-card">
                     <div class="card-header"><div class="card-title">LPF</div><div><button class="slope-btn active" onclick="setSlope(this, 'LPF')">24</button><button class="slope-btn" onclick="setSlope(this, 'LPF')">12</button><button class="toggle-switch lpf" id="lpfToggle" onclick="toggleFilter(this)">OFF</button></div></div>
                     <div class="slider-container"><button class="step-btn" onclick="stepValue('lpfFreq', -10)">&lt;</button><input type="range" id="lpfFreq" min="20" max="20000" value="20000" oninput="updateGraph()"><button class="step-btn" onclick="stepValue('lpfFreq', 10)">&gt;</button><div class="val-display" id="lpfFreqVal">20kHz</div></div>
-                </div>
-                
-                <div class="control-card">
+                </div></div>
+                  <div class="out-tab-panel" id="tab-eq"><div class="control-card">
                     <div class="card-header"><div class="card-title">PEQ (3-BAND)</div></div>
                     <div class="peq-row"><span class="peq-label">1</span><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq1_freq', -10)">&lt;</button><input class="peq-slider" type="range" id="peq1_freq" min="20" max="20000" value="100" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq1_freq', 10)">&gt;</button><div class="peq-text" id="peq1_freqVal" style="color:var(--neon-blue);">100</div></div><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq1_gain', -1)">&lt;</button><input class="peq-slider" type="range" id="peq1_gain" min="-15" max="15" value="0" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq1_gain', 1)">&gt;</button><div class="peq-text" id="peq1_gainVal">0</div></div></div>
                     <div class="peq-row"><span class="peq-label">2</span><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq2_freq', -10)">&lt;</button><input class="peq-slider" type="range" id="peq2_freq" min="20" max="20000" value="1000" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq2_freq', 10)">&gt;</button><div class="peq-text" id="peq2_freqVal" style="color:var(--neon-blue);">1.0k</div></div><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq2_gain', -1)">&lt;</button><input class="peq-slider" type="range" id="peq2_gain" min="-15" max="15" value="0" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq2_gain', 1)">&gt;</button><div class="peq-text" id="peq2_gainVal">0</div></div></div>
                     <div class="peq-row"><span class="peq-label">3</span><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_freq', -10)">&lt;</button><input class="peq-slider" type="range" id="peq3_freq" min="20" max="20000" value="5000" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_freq', 10)">&gt;</button><div class="peq-text" id="peq3_freqVal" style="color:var(--neon-blue);">5.0k</div></div><div class="slider-container" style="width: 45%;"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_gain', -1)">&lt;</button><input class="peq-slider" type="range" id="peq3_gain" min="-15" max="15" value="0" oninput="updateGraph()"><button class="step-btn" style="width:14px; height:14px; font-size:8px;" onclick="stepValue('peq3_gain', 1)">&gt;</button><div class="peq-text" id="peq3_gainVal">0</div></div></div>
-                </div>
-                
-                <div class="control-card">
+                </div></div>
+                  <div class="out-tab-panel" id="tab-dynamics"><div class="control-card">
                     <div class="card-header">
                         <div class="card-title">COMPRESSOR</div>
                         <button class="toggle-switch" id="compToggle" onclick="toggleComp(this)">OFF</button>
@@ -141,15 +143,9 @@
                         <input type="range" id="compRel" min="50" max="1000" value="200" oninput="updateComp('COMP_REL', this.value)">
                         <div class="peq-text" id="compRelVal">200</div>
                     </div>
+                </div><div class="control-card"><div class="card-header"><div class="card-title">LIMITER</div><button class="toggle-switch on" id="limToggle" onclick="toggleFilter(this)" style="padding:0 4px;">ON</button></div><div class="slider-container"><button class="step-btn" onclick="stepValue('limit', -1)">&lt;</button><input type="range" id="limit" min="-20" max="0" value="0" oninput="updateVal('limit', 'dB')"><button class="step-btn" onclick="stepValue('limit', 1)">&gt;</button><div class="val-display" id="limitVal">0</div></div></div></div>
+                  <div class="out-tab-panel" id="tab-delay"><div class="control-card"><div class="card-header"><div class="card-title">DELAY</div></div><div class="card-title">DELAY</div><div class="slider-container"><button class="step-btn" onclick="stepValue('delay', -0.1)">&lt;</button><input type="range" id="delay" min="0" max="10" step="0.1" value="0" oninput="updateVal('delay', 'ms')"><button class="step-btn" onclick="stepValue('delay', 0.1)">&gt;</button><div class="val-display" id="delayVal">0</div></div></div><div class="control-card"><div class="card-header"><div class="card-title">OUTPUT GAIN</div></div><div class="card-title">OUT VOLUME (GAIN)</div><div class="slider-container"><button class="step-btn" onclick="stepValue('gain', -1)">&lt;</button><input type="range" id="gain" min="-60" max="12" value="0" oninput="updateVal('gain', 'dB')"><button class="step-btn" onclick="stepValue('gain', 1)">&gt;</button><div class="val-display" id="gainVal" style="color:var(--neon-blue);">0</div></div></div></div>
                 </div>
-                
-                <div class="bottom-row">
-                    <div class="half-card"><div class="card-title">OUT VOLUME (GAIN)</div><div class="slider-container"><button class="step-btn" onclick="stepValue('gain', -1)">&lt;</button><input type="range" id="gain" min="-60" max="12" value="0" oninput="updateVal('gain', 'dB')"><button class="step-btn" onclick="stepValue('gain', 1)">&gt;</button><div class="val-display" id="gainVal" style="color:var(--neon-blue);">0</div></div></div>
-                    <div class="half-card"><div class="card-title">DELAY</div><div class="slider-container"><button class="step-btn" onclick="stepValue('delay', -0.1)">&lt;</button><input type="range" id="delay" min="0" max="10" step="0.1" value="0" oninput="updateVal('delay', 'ms')"><button class="step-btn" onclick="stepValue('delay', 0.1)">&gt;</button><div class="val-display" id="delayVal">0</div></div></div>
-                    <div class="half-card"><div class="card-header" style="margin-bottom: 2px;"><div class="card-title">LIMIT</div><button class="toggle-switch on" id="limToggle" onclick="toggleFilter(this)" style="padding: 0 4px;">ON</button></div><div class="slider-container"><button class="step-btn" onclick="stepValue('limit', -1)">&lt;</button><input type="range" id="limit" min="-20" max="0" value="0" oninput="updateVal('limit', 'dB')"><button class="step-btn" onclick="stepValue('limit', 1)">&gt;</button><div class="val-display" id="limitVal">0</div></div></div>
-                </div>
-            </div>
-            
             <div class="graph-col">
                 <div class="graph-utils"><button class="util-btn mute" onclick="toggleMute(this, 'OUT' + currentOut)">MUTE</button><button class="util-btn phase" onclick="togglePhase(this, currentOut)">0°</button></div>
                 <div class="graph-body">
