@@ -20,7 +20,16 @@
         let dashActiveOut = 1;
         let graphMode = 'RTA'; 
         let isLinked = false; 
-        let oscData = new Array(50).fill(50); 
+        let oscData = new Array(50).fill(50);
+        // Oscilloscope data arrives from firmware as OSC_OUT1..OSC_OUT4.
+        const oscOutData = {
+            1: Array(50).fill(50), 2: Array(50).fill(50),
+            3: Array(50).fill(50), 4: Array(50).fill(50)
+        };
+        const oscOutVisible = {1:true,2:true,3:true,4:true};
+        const OSC_OUT_COLORS = {1:'#00e5ff',2:'#ff9100',3:'#00ff88',4:'#ff0033'};
+        let oscOutCanvas = null, oscOutCtx = null, oscOutFrozen = false, oscOutFrame = null;
+ 
 
         const bleCommandQueue = [];
         let bleQueueBusy = false;
@@ -201,6 +210,9 @@
                     }
                 }
             }
+            else if (/^OSC_OUT[1-4]:/.test(text)) {
+                handleOscData(text);
+            }
             else if (text.startsWith('OSC:')) {
                 const monitorOscParts = text.split(':')[1].split(',');
                 const monitorOscValues = monitorOscParts.map(p => { const n = parseInt(p, 10); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50; });
@@ -277,6 +289,106 @@
                 path += `L ${i * step} ${oscData[i]} `;
             }
             oscLine.setAttribute('d', path);
+        }
+
+
+        function initOscilloscope() {
+            oscOutCanvas = document.getElementById('osc-canvas');
+            if (!oscOutCanvas) return;
+            oscOutCtx = oscOutCanvas.getContext('2d');
+            resizeOscCanvas();
+            if (!oscOutCanvas.dataset.resizeBound) {
+                window.addEventListener('resize', resizeOscCanvas);
+                oscOutCanvas.dataset.resizeBound = '1';
+            }
+            if (oscOutFrame) cancelAnimationFrame(oscOutFrame);
+            renderOscilloscope();
+        }
+
+        function resizeOscCanvas() {
+            if (!oscOutCanvas || !oscOutCtx) return;
+            const rect = oscOutCanvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const dpr = window.devicePixelRatio || 1;
+            oscOutCanvas.width = Math.round(rect.width * dpr);
+            oscOutCanvas.height = Math.round(rect.height * dpr);
+            oscOutCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawOscOutFrame();
+        }
+
+        function handleOscData(text) {
+            const match = /^OSC_OUT([1-4]):(.*)$/.exec(text);
+            if (!match) return;
+            const channel = Number(match[1]);
+            const values = match[2].split(',').map(v => Number.parseInt(v.trim(), 10));
+            if (values.length !== 50 || values.some(v => !Number.isFinite(v))) return;
+            oscOutData[channel] = values.map(v => Math.max(0, Math.min(100, v)));
+        }
+
+        function toggleOscFreeze() {
+            oscOutFrozen = !oscOutFrozen;
+            const button = document.getElementById('osc-freeze-btn');
+            if (button) {
+                button.textContent = oscOutFrozen ? '▶ RESUME' : '❄ FREEZE';
+                button.classList.toggle('active', oscOutFrozen);
+            }
+        }
+
+        function toggleOscChannel(channel) {
+            if (!Object.prototype.hasOwnProperty.call(oscOutVisible, channel)) return;
+            oscOutVisible[channel] = !oscOutVisible[channel];
+            const button = document.querySelector('.osc-legend-item[data-osc-ch="' + channel + '"]');
+            if (button) button.classList.toggle('hidden', !oscOutVisible[channel]);
+            drawOscOutFrame();
+        }
+
+        function renderOscilloscope() {
+            if (!oscOutCtx || !oscOutCanvas) return;
+            drawOscOutFrame();
+            oscOutFrame = requestAnimationFrame(renderOscilloscope);
+        }
+
+        function drawOscOutFrame() {
+            if (!oscOutCtx || !oscOutCanvas) return;
+            const ctx = oscOutCtx;
+            const w = oscOutCanvas.clientWidth, h = oscOutCanvas.clientHeight;
+            if (!w || !h) return;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#03060a';
+            ctx.fillRect(0, 0, w, h);
+
+            // Grid and center reference.
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#18283d';
+            for (let row = 1; row < 5; row++) {
+                const y = h * row / 5;
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+            for (let col = 1; col < 10; col++) {
+                const x = w * col / 10;
+                ctx.setLineDash([3, 4]);
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#53647b';
+            ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+
+            for (let ch = 1; ch <= 4; ch++) {
+                if (!oscOutVisible[ch]) continue;
+                const data = oscOutData[ch], color = OSC_OUT_COLORS[ch];
+                ctx.beginPath();
+                data.forEach((value, i) => {
+                    const x = i * (w / (data.length - 1));
+                    const y = h - (value / 100) * h;
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.6;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 4;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
         }
 
         function toggleLink() {
@@ -1602,3 +1714,10 @@ function toggleSpecChannel(ch){specVisible[ch]=!specVisible[ch];const e=document
 function updateSpecSmooth(v){specSmoothing=Math.max(0,Math.min(95,Number(v)))/100;const e=document.getElementById('spec-smooth-val');if(e)e.innerText=v+'%';}
 function aiSpectrumAnalysis(){const panel=document.getElementById('spec-ai-panel'),out=document.getElementById('spec-ai-content');if(!panel||!out)return;panel.classList.add('show');let report='',issues=0;for(let ch=1;ch<=4;ch++){if(!specVisible[ch])continue;const d=specSmoothData[ch],name=['Mid-High R','Mid-High L','Low','Sub'][ch-1],color=SPEC_COLORS[ch].stroke;if(d.some(v=>v>95)){report+='<div style="color:'+color+'">🚨 OUT '+ch+' ('+name+'): CLIPPING — turunkan gain.</div>';issues++;}if((ch===3||ch===4)&&d[1]>85){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Bass 150Hz dominan (Boomy).</div>';issues++;}if((ch===1||ch===2)&&(d[5]>85||d[6]>85)){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Treble tajam (Harsh).</div>';issues++;}if((ch===1||ch===2)&&d[3]<25&&(d[0]>60||d[1]>60)){report+='<div style="color:'+color+'">⚠️ OUT '+ch+': Vokal mungkin tertutup bass.</div>';issues++;}}const a=specSmoothData[1].reduce((x,y)=>x+y,0)/7,z=specSmoothData[2].reduce((x,y)=>x+y,0)/7;if(Math.abs(a-z)>20){report+='<div>⚖️ L/R tidak seimbang: '+Math.round(Math.abs(a-z))+'%.</div>';issues++;}out.innerHTML=issues?report+'<div style="margin-top:8px;color:var(--neon-yellow)">Total '+issues+' masalah.</div>':'<div style="color:var(--neon-green)">Tidak ada anomali besar pada data saat ini.</div>';}
 function handleSpectrum4Data(text){if(specSimMode||typeof text!=='string'||!text.startsWith('SPECTRUM4:'))return;const rows=text.slice(10).split('|');if(rows.length!==4)return;const parsed=rows.map(x=>x.split(',').map(Number));if(parsed.some(a=>a.length!==7||a.some(v=>!Number.isFinite(v))))return;for(let ch=1;ch<=4;ch++)specData[ch]=parsed[ch-1].map(v=>Math.max(0,Math.min(100,v)));}
+
+// Initialize the live 4-channel oscilloscope after the page DOM is ready.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOscilloscope, { once: true });
+} else {
+    initOscilloscope();
+}
