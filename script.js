@@ -1258,14 +1258,15 @@ function saveNotesToStorage() {
     }
 }
 function initNotesPage() {
+    // Muat data tersimpan tanpa menyalin textarea lama ke atas data yang baru dimuat.
     loadNotesFromStorage();
-    switchNoteTab(currentNoteTab);
+    if (!Object.prototype.hasOwnProperty.call(notesData, currentNoteTab)) {
+        currentNoteTab = 'midhigh';
+    }
+    renderNoteTab(currentNoteTab);
 }
-function switchNoteTab(tab) {
-    if (!Object.prototype.hasOwnProperty.call(notesData, tab)) return;
+function renderNoteTab(tab) {
     const area = document.getElementById('notes-textarea');
-    if (area && currentNoteTab) notesData[currentNoteTab] = area.value;
-    currentNoteTab = tab;
     document.querySelectorAll('.notes-tab').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.note === tab);
     });
@@ -1274,6 +1275,13 @@ function switchNoteTab(tab) {
     if (area) area.value = notesData[tab] || '';
     const status = document.getElementById('notes-status');
     if (status) status.textContent = 'Catatan disimpan otomatis di perangkat ini.';
+}
+function switchNoteTab(tab) {
+    if (!Object.prototype.hasOwnProperty.call(notesData, tab)) return;
+    const area = document.getElementById('notes-textarea');
+    if (area && currentNoteTab) notesData[currentNoteTab] = area.value;
+    currentNoteTab = tab;
+    renderNoteTab(tab);
 }
 function updateCurrentNote(value) {
     notesData[currentNoteTab] = value;
