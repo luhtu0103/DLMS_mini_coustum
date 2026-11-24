@@ -516,3 +516,19 @@ body {
 .osc-dot.out2 { background:var(--color-out2,#ff9100); }
 .osc-dot.out3 { background:var(--color-out3,#00ff88); }
 .osc-dot.out4 { background:var(--color-out4,#ff0033); }
+
+
+/* Output setting tabs */
+.out-tabs { display:flex; gap:3px; margin:6px 0; flex-shrink:0; }
+.out-tab-btn { flex:1; min-width:0; background:var(--panel-bg); color:var(--text-dim); border:1px solid #1a2a40; padding:7px 2px; border-radius:4px; font-size:9px; font-weight:bold; cursor:pointer; transition:all .2s; }
+.out-tab-btn.active { background:var(--neon-blue); color:#000; border-color:var(--neon-blue); box-shadow:0 0 8px var(--neon-blue); }
+.out-tab-content { flex:1; overflow-y:auto; padding-right:2px; min-height:0; }
+.out-tab-content::-webkit-scrollbar { width:3px; }
+.out-tab-content::-webkit-scrollbar-thumb { background:var(--neon-blue); }
+.out-tab-panel { display:none; flex-direction:column; gap:6px; }
+.out-tab-panel.active { display:flex; }
+#page-setting .controls-col { min-height:0; }
+#page-setting .out-tab-content .control-card { flex-shrink:0; }
+#page-setting .compressor-row { margin-bottom:4px; }
+#page-setting .compressor-row .peq-label { width:30px; min-width:30px; }
+#page-setting .compressor-row .peq-text { min-width:50px; }
