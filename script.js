@@ -596,7 +596,9 @@
             loadStateToUI(outNum); 
             showPage('page-setting'); 
         }
-        function switchTab(outNum) { saveCurrentUI(); currentOut = outNum; document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-' + outNum).classList.add('active'); loadStateToUI(outNum); }
+        function switchTab(outNum) { saveCurrentUI(); currentOut = outNum; document.querySelectorAll('.out-tab').forEach(t => t.classList.remove('active')); document.getElementById('tab-' + outNum).classList.add('active'); const meterLabel = document.querySelector('#page-setting .meter-label');
+            if (meterLabel) meterLabel.textContent = 'OUT ' + outNum;
+            loadStateToUI(outNum); }
         
         function saveCurrentUI() { 
             let st = globalState[currentOut]; 
