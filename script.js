@@ -533,8 +533,8 @@
             if (targetOut < 1 || targetOut > 4) return;
             let src = globalState[sourceOut];
             let tgt = globalState[targetOut];
-            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq; tgt.hpfSlope = src.hpfSlope || 24; tgt.hpfSlope = src.hpfSlope || 24;
-            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq; tgt.lpfSlope = src.lpfSlope || 24; tgt.lpfSlope = src.lpfSlope || 24;
+            tgt.hpfOn = src.hpfOn; tgt.hpfFreq = src.hpfFreq; tgt.hpfSlope = src.hpfSlope || 24;
+            tgt.lpfOn = src.lpfOn; tgt.lpfFreq = src.lpfFreq; tgt.lpfSlope = src.lpfSlope || 24;
             tgt.p1f = src.p1f; tgt.p1g = src.p1g;
             tgt.p2f = src.p2f; tgt.p2g = src.p2g;
             tgt.p3f = src.p3f; tgt.p3g = src.p3g;
@@ -546,10 +546,8 @@
             sendBLEData('OUT' + targetOut + '_HPF_ON,' + (tgt.hpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_HPFFREQ,' + tgt.hpfFreq);
             sendBLEData('OUT' + targetOut + '_HPFSLOPE,' + tgt.hpfSlope);
-            sendBLEData('OUT' + targetOut + '_HPFSLOPE,' + tgt.hpfSlope);
             sendBLEData('OUT' + targetOut + '_LPF_ON,' + (tgt.lpfOn ? 1 : 0));
             sendBLEData('OUT' + targetOut + '_LPFFREQ,' + tgt.lpfFreq);
-            sendBLEData('OUT' + targetOut + '_LPFSLOPE,' + tgt.lpfSlope);
             sendBLEData('OUT' + targetOut + '_LPFSLOPE,' + tgt.lpfSlope);
             sendBLEData('OUT' + targetOut + '_PEQ1FREQ,' + tgt.p1f);
             sendBLEData('OUT' + targetOut + '_PEQ1GAIN,' + tgt.p1g);
@@ -582,6 +580,8 @@
                 document.getElementById('gain').value = val;
                 document.getElementById('gainVal').innerText = val + ' dB';
             }
+            // Dashboard gain must obey the same pair-link behavior as the output settings page.
+            applyGlobalLink(outNum);
         }
 
 
