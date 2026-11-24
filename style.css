@@ -745,85 +745,8 @@ body {
 }
 
 
-/* Output layout fixes: avoid duplicate graph and keep the three columns contained */
-#page-setting .setting-layout.out-landscape-layout { box-sizing: border-box; }
-#page-setting .col-graph .svg-container { flex: 1 1 auto; min-height: 90px; }
-#page-setting .graph-mode-label { color: var(--neon-blue); font-size: 10px; font-weight: 700; }
-#page-setting .meter-label { text-align: center; white-space: nowrap; }
-@media (max-height: 420px) {
-  #page-setting .setting-header { min-height: 32px; }
-  #page-setting .controls-col > .reset-btn { font-size: 9px; }
-  #page-setting .controls-col .out-tab-btn { padding-top: 5px; padding-bottom: 5px; }
-  #page-setting .col-graph { padding: 4px; }
-}
 
-
-/* Keep controls and response curve as independent side-by-side panels */
-#page-setting .setting-layout.out-landscape-layout {
-    grid-template-columns: 48px minmax(320px, 0.95fr) minmax(380px, 1.4fr);
-    align-items: stretch;
-}
-#page-setting .controls-col {
-    grid-column: 2;
-    width: 100%;
-    max-width: none;
-}
-#page-setting .col-graph {
-    grid-column: 3;
-    width: 100%;
-}
-@media (max-width: 760px) {
-    #page-setting .setting-layout.out-landscape-layout {
-        grid-template-columns: 42px minmax(230px, 0.95fr) minmax(260px, 1.1fr);
-        gap: 5px;
-    }
-}
-
-
-/* Output controls: reset sejajar dengan tab FILTER/EQ/DYNAMICS/DELAY */
-#page-setting .out-tabs {
-    display: flex;
-    align-items: stretch;
-    gap: 4px;
-    margin: 6px 0;
-    flex: 0 0 auto;
-    min-width: 0;
-}
-#page-setting .out-tabs .out-tab-btn {
-    flex: 1 1 0;
-    min-width: 0;
-    white-space: nowrap;
-}
-#page-setting .out-tabs .out-reset-btn {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 52px;
-    padding: 7px 8px;
-    margin: 0;
-    border-radius: 4px;
-    font-size: 9px;
-    line-height: 1;
-    white-space: nowrap;
-}
-@media (max-width: 560px) {
-    #page-setting .out-tabs { gap: 3px; }
-    #page-setting .out-tabs .out-tab-btn { font-size: 7px; padding-left: 1px; padding-right: 1px; }
-    #page-setting .out-tabs .out-reset-btn { min-width: 43px; padding: 7px 4px; font-size: 8px; }
-}
-
-
-/* FINAL FIX: keep the meter, controls, and response graph aligned in one row */
-#page-setting {
-    box-sizing: border-box;
-}
-#page-setting .setting-header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-    box-sizing: border-box;
-}
+/* Output layout: consolidated rules preserving the verified three-column layout */
 #page-setting .setting-layout.out-landscape-layout {
     display: grid !important;
     grid-template-columns: 48px minmax(0, 0.95fr) minmax(0, 1.35fr) !important;
@@ -841,6 +764,14 @@ body {
     overflow: hidden;
     box-sizing: border-box;
 }
+#page-setting .setting-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
 #page-setting .setting-layout.out-landscape-layout > .col-meters,
 #page-setting .setting-layout.out-landscape-layout > .controls-col,
 #page-setting .setting-layout.out-landscape-layout > .col-graph {
@@ -849,13 +780,20 @@ body {
     min-width: 0;
     min-height: 0;
     margin: 0;
+    position: relative !important;
+    top: 0 !important;
+    transform: none !important;
     box-sizing: border-box;
 }
-#page-setting .setting-layout.out-landscape-layout > .col-meters { grid-column: 1 !important; }
+#page-setting .setting-layout.out-landscape-layout > .col-meters {
+    grid-column: 1 !important;
+    padding: 5px 2px;
+}
 #page-setting .setting-layout.out-landscape-layout > .controls-col {
     grid-column: 2 !important;
     display: flex;
     flex-direction: column;
+    justify-self: stretch !important;
     padding: 0 4px 4px 0;
     overflow: hidden;
 }
@@ -865,6 +803,10 @@ body {
     flex-direction: column;
     width: 100%;
     overflow: hidden;
+    padding: 7px;
+    background: #03060a;
+    border: 1px solid #1a2a40;
+    border-radius: 4px;
 }
 #page-setting .controls-col .out-tabs {
     display: flex;
@@ -873,51 +815,67 @@ body {
     flex-wrap: nowrap;
     gap: 5px;
     width: 100%;
+    min-width: 0;
     margin: 0 0 8px;
+    padding-top: 0;
+    flex: 0 0 auto;
 }
 #page-setting .controls-col .out-tab-btn {
     flex: 1 1 0;
     min-width: 0;
+    white-space: nowrap;
 }
-#page-setting .controls-col .out-reset-btn {
+#page-setting .out-tabs .out-reset-btn {
     flex: 0 0 auto;
+    width: auto;
+    min-width: 52px;
+    padding: 7px 8px;
+    margin: 0;
+    border-radius: 4px;
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
 }
+#page-setting .graph-header {
+    display: flex;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    color: #8ab4f8;
+    font-size: 10px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+#page-setting .col-graph .svg-container {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 90px;
+    overflow: hidden;
+}
+#page-setting .svg-container svg { display: block; width: 100%; height: 100%; }
+#page-setting .graph-mode-label { color: var(--neon-blue); font-size: 10px; font-weight: 700; }
+#page-setting .meter-label { text-align: center; white-space: nowrap; }
+
 @media (max-width: 760px) {
     #page-setting .setting-layout.out-landscape-layout {
         grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1.15fr) !important;
         gap: 5px;
     }
     #page-setting .controls-col .out-tabs { gap: 3px; }
-    #page-setting .controls-col .out-tab-btn { font-size: 8px; padding-left: 1px; padding-right: 1px; }
-    #page-setting .controls-col .out-reset-btn { min-width: 42px; padding-left: 4px; padding-right: 4px; }
+    #page-setting .controls-col .out-tab-btn {
+        font-size: 8px;
+        padding-left: 1px;
+        padding-right: 1px;
+    }
+    #page-setting .out-tabs .out-reset-btn {
+        min-width: 42px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
 }
-
-
-/* HOTFIX: remove vertical offset from the controls column */
-#page-setting .setting-layout.out-landscape-layout > .controls-col {
-    position: relative !important;
-    top: 0 !important;
-    align-self: stretch !important;
-    margin-top: 0 !important;
-    padding-top: 0 !important;
-    transform: none !important;
-    justify-self: stretch !important;
-}
-#page-setting .setting-layout.out-landscape-layout > .col-graph {
-    position: relative !important;
-    top: 0 !important;
-    align-self: stretch !important;
-    margin-top: 0 !important;
-    transform: none !important;
-}
-#page-setting .setting-layout.out-landscape-layout > .col-meters {
-    position: relative !important;
-    top: 0 !important;
-    align-self: stretch !important;
-    margin-top: 0 !important;
-    transform: none !important;
-}
-#page-setting .setting-layout.out-landscape-layout > .controls-col > .out-tabs {
-    margin-top: 0 !important;
-    padding-top: 0 !important;
+@media (max-height: 420px) {
+    #page-setting .setting-header { min-height: 32px; }
+    #page-setting .controls-col > .reset-btn { font-size: 9px; }
+    #page-setting .controls-col .out-tab-btn { padding-top: 5px; padding-bottom: 5px; }
+    #page-setting .col-graph { padding: 4px; }
 }
