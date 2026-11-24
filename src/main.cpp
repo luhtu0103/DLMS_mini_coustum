@@ -294,6 +294,37 @@ bool loadFromNVS() {
   return true;
 }
 
+// Emit compact state packets so each notification fits the default BLE MTU.
+void notifyStatePacket(const char *group, const char *key, float value) {
+  if (g_levelChar == nullptr || !deviceConnected) return;
+  char packet[24];
+  snprintf(packet, sizeof(packet), "ST:%s:%s:%.2f", group, key, value);
+  g_levelChar->setValue(packet);
+  g_levelChar->notify();
+  vTaskDelay(pdMS_TO_TICKS(18));
+}
+void notifyCurrentState() {
+  if (g_levelChar == nullptr || !deviceConnected) return;
+  OutputChannel *outs[4] = {&out1, &out2, &out3, &out4};
+  for (int i = 0; i < 4; i++) {
+    OutputChannel *o = outs[i]; char group[4]; snprintf(group, sizeof(group), "O%d", i + 1);
+    notifyStatePacket(group,"HO",o->hpf_on); notifyStatePacket(group,"HF",o->hpf_freq); notifyStatePacket(group,"HS",o->hpf_slope);
+    notifyStatePacket(group,"LO",o->lpf_on); notifyStatePacket(group,"LF",o->lpf_freq); notifyStatePacket(group,"LS",o->lpf_slope);
+    for (int j = 0; j < 3; j++) { char kf[4], kg[4]; snprintf(kf,sizeof(kf),"P%dF",j+1); snprintf(kg,sizeof(kg),"P%dG",j+1); notifyStatePacket(group,kf,o->peq_freq[j]); notifyStatePacket(group,kg,o->peq_gain[j]); }
+    notifyStatePacket(group,"GF",o->gain_db); notifyStatePacket(group,"DY",o->delay_ms);
+    notifyStatePacket(group,"LM",o->limiter_on); notifyStatePacket(group,"LT",o->limiter_thresh);
+    notifyStatePacket(group,"CO",o->comp_on); notifyStatePacket(group,"CT",o->comp_thresh); notifyStatePacket(group,"CR",o->comp_ratio);
+    // Convert stored coefficients back to approximate milliseconds for UI display.
+    float atk = o->comp_attack_coeff > 0.0f && o->comp_attack_coeff < 1.0f ? -1.0f/(logf(o->comp_attack_coeff)*48.0f) : 10.0f;
+    float rel = o->comp_release_coeff > 0.0f && o->comp_release_coeff < 1.0f ? -1.0f/(logf(o->comp_release_coeff)*48.0f) : 200.0f;
+    notifyStatePacket(group,"CA",constrain((int)lroundf(atk),1,100)); notifyStatePacket(group,"CE",constrain((int)lroundf(rel),50,1000));
+    notifyStatePacket(group,"MU",o->is_mute); notifyStatePacket(group,"PH",o->phase_180); notifyStatePacket(group,"RT",o->routing);
+  }
+  notifyStatePacket("IL","GF",inL.gain_db); notifyStatePacket("IL","PF",inL.peq_freq); notifyStatePacket("IL","PG",inL.peq_gain); notifyStatePacket("IL","MU",inL.is_mute);
+  notifyStatePacket("IR","GF",inR.gain_db); notifyStatePacket("IR","PF",inR.peq_freq); notifyStatePacket("IR","PG",inR.peq_gain); notifyStatePacket("IR","MU",inR.is_mute);
+  notifyStatePacket("SYS","MV",master_volume); notifyStatePacket("SYS","BY",global_bypass ? 1 : 0);
+}
+
 // ==========================================
 // BLE CALLBACKS
 // ==========================================
@@ -343,6 +374,11 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       if (val != 1) return;
       bool ok = loadFromNVS();
       if (g_levelChar != nullptr) { g_levelChar->setValue(ok ? "STATUS:LOAD_OK" : "STATUS:LOAD_FAIL"); g_levelChar->notify(); }
+    }
+    else if (cmd == "GET_STATE") {
+      if (val != 1) return;
+      notifyCurrentState();
+      if (g_levelChar != nullptr) { g_levelChar->setValue("STATUS:STATE_DONE"); g_levelChar->notify(); }
     }
     else if (cmd == "MASTER") { if (val < -60 || val > 0) return; master_volume = val; master_linear_cached = powf(10.0f, val / 20.0f); }
     else if (cmd == "ALL_BYPASS") { global_bypass = (val > 0); }
