@@ -815,7 +815,7 @@
         }
 
         function updateRoutingUI() {
-            // Posisi tujuan tiap output pada diagram SVG (viewBox 600 x 180).
+            // Kurva Bézier halus; tiap output memakai koridor berbeda agar jalur mudah dibaca.
             const outputY = { 1: 28, 2: 74, 3: 112, 4: 158 };
 
             for (let i = 1; i <= 4; i++) {
@@ -830,15 +830,25 @@
                 leftNode.classList.toggle('active', leftActive);
                 rightNode.classList.toggle('active', rightActive);
 
-                // Garis diagram mengikuti matrix: 0=L, 1=R, 2=L+R, 3=OFF.
-                [['L', leftActive, 45], ['R', rightActive, 135]].forEach(([channel, active, sourceY]) => {
+                // Saat L+R menuju output yang sama, pisahkan titik masuk sedikit supaya tidak menumpuk.
+                const targetY = outputY[i];
+                const targetLeftY = routing === 2 ? targetY - 4 : targetY;
+                const targetRightY = routing === 2 ? targetY + 4 : targetY;
+                const lane = { 1: 34, 2: 70, 3: 110, 4: 146 }[i];
+
+                [['L', leftActive, 45, targetLeftY, -1], ['R', rightActive, 135, targetRightY, 1]].forEach(([channel, active, sourceY, endY, side]) => {
                     const path = document.getElementById('route-flow-' + i + '-' + channel);
                     if (!path) return;
-                    const targetY = outputY[i];
-                    path.setAttribute('d', active
-                        ? 'M18 ' + sourceY + ' H170 Q195 ' + sourceY + ' 195 ' + targetY + ' H410'
-                        : '');
-                    path.style.opacity = active ? '0.95' : '0';
+                    // Jalur masuk menyebar lembut, lalu melengkung ke output; tidak memakai sudut siku.
+                    const corridor = lane + (routing === 2 ? side * 5 : 0);
+                    const d = 'M 18 ' + sourceY +
+                        ' C 62 ' + sourceY + ', 78 ' + corridor + ', 128 ' + corridor +
+                        ' S 190 ' + endY + ', 238 ' + endY +
+                        ' C 310 ' + endY + ', 365 ' + endY + ', 500 ' + endY;
+                    path.setAttribute('d', active ? d : '');
+                    path.style.opacity = active ? '0.96' : '0';
+                    path.style.strokeWidth = routing === 2 ? '2.2' : '2.7';
+                    path.classList.toggle('flow-active', active);
                 });
 
                 const label = document.getElementById('routing-status-' + i);
