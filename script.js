@@ -1,5 +1,7 @@
         let bleDevice, bleCharacteristic;
         let bleNativeConnected = false;
+        let detectedFirmwareVersion = '';
+        let detectedSampleRate = 0;
 
         function getNativeBLE() {
             if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) return null;
@@ -119,6 +121,7 @@
                 updateBLEStatus(true);
                 updateSystemInfo();
                 await syncFullStateToDevice();
+                sendBLEData('INFO,1');
                 if (!isAutomatic) alert('✅ Terhubung ke ' + (bleDevice?.name || 'ESP32-S3'));
                 else showToast('✅ BLE tersambung kembali');
             } catch (error) {
@@ -237,6 +240,14 @@
 
         function handleBLEMessage(event) {
             const text = new TextDecoder().decode(event.target.value).trim();
+            if (text.startsWith('INFO:')) {
+                const fields = Object.fromEntries(text.slice(5).split(';').map(item => item.split('=')));
+                if (fields.FW) detectedFirmwareVersion = fields.FW;
+                const rate = Number(fields.SR);
+                if (Number.isFinite(rate) && rate > 0) detectedSampleRate = rate;
+                updateSystemInfo();
+                return;
+            }
             if (text.startsWith('SPECTRUM:')) {
                 // SKIP update spectrum bar jika sedang di halaman RTA
                 if (rtaPageActive && rtaActive) return;
@@ -1081,7 +1092,16 @@ function saveBackupLocal(){const m=document.querySelector('#page-front input[typ
 function restoreBackupLocal(){const raw=localStorage.getItem('DLMS_BACKUP_FULL');if(!raw){showToast('⚠️ Tidak ada backup!');return;}if(!confirm('Restore backup? Settingan saat ini akan ditimpa!'))return;try{const b=JSON.parse(raw);if(b.outs){for(let i=1;i<=4;i++)if(!b.outs[i])throw Error('Data output tidak lengkap');globalState=b.outs;for(let i=1;i<=4;i++)sendOutputStateToDevice(i,globalState[i]);}if(b.ins){if(!b.ins.L||!b.ins.R)throw Error('Data input tidak lengkap');inputState=b.ins;sendInputStateToDevice('L',inputState.L);sendInputStateToDevice('R',inputState.R);}if(b.master!==undefined){const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');if(m){m.value=b.master;m.dispatchEvent(new Event('input',{bubbles:true}));}}if(b.deviceName){document.getElementById('dash-title').innerText=b.deviceName;localStorage.setItem('DLMS_DEVICE_NAME',b.deviceName);}syncDashboardUI();showToast('🔄 Backup direstore!');}catch(e){showToast('❌ Backup tidak valid!');}}
 function renameDevice(){const el=document.getElementById('dash-title'),old=el.innerText,n=prompt('Nama perangkat baru:',old);if(n===null||!n.trim())return;const name=n.trim().substring(0,20);el.innerText=name;localStorage.setItem('DLMS_DEVICE_NAME',name);showToast('✅ Nama diubah: '+name);}
 function resetFactory(){if(!confirm('Reset semua parameter output, input, dan master ke nilai default?'))return;if(!confirm('Yakin? Tindakan ini tidak dapat dibatalkan.'))return;for(let i=1;i<=4;i++){globalState[i]={hpfOn:false,hpfFreq:20,hpfSlope:24,lpfOn:false,lpfFreq:20000,lpfSlope:24,p1f:100,p1g:0,p2f:1000,p2g:0,p3f:5000,p3g:0,gain:0,delay:0,limitOn:false,limit:0,routing:2,isMute:false,phase180:false,compOn:false,compThresh:-20,compRatio:4,compAtk:10,compRel:200};sendOutputStateToDevice(i,globalState[i]);}inputState.L={gain:0,peqFreq:1000,peqGain:0};inputState.R={gain:0,peqFreq:1000,peqGain:0};sendInputStateToDevice('L',inputState.L);sendInputStateToDevice('R',inputState.R);const m=document.querySelector('#page-front input[type="range"][oninput*="MASTER,"]');if(m){m.value=0;m.dispatchEvent(new Event('input',{bubbles:true}));}syncDashboardUI();updateSystemInfo();showToast('Reset parameter selesai; NVS firmware tidak dihapus.');}
-function updateSystemInfo(){const c=isSystemBLEConnected(),e=document.getElementById('sys-ble-status');if(e){e.innerText=c?'CONNECTED':'DISCONNECTED';e.className='sys-info-value '+(c?'connected':'disconnected');}let n=0;for(let i=1;i<=4;i++)if(localStorage.getItem('DLMS_PRESET_'+i))n++;const p=document.getElementById('sys-preset-count');if(p)p.innerText=n+'/4 saved';}
+function updateSystemInfo(){
+ const c=isSystemBLEConnected(),e=document.getElementById('sys-ble-status');
+ if(e){e.innerText=c?'CONNECTED':'DISCONNECTED';e.className='sys-info-value '+(c?'connected':'disconnected');}
+ const fw=document.getElementById('sys-fw-ver');
+ if(fw)fw.innerText=detectedFirmwareVersion?(detectedFirmwareVersion+' (terdeteksi)'):(c?'Menunggu respons firmware':'Belum terhubung');
+ const sr=document.getElementById('sys-sample-rate');
+ if(sr)sr.innerText=detectedSampleRate?(detectedSampleRate/1000)+' kHz (terdeteksi)':'Belum terdeteksi';
+ let n=0;for(let i=1;i<=4;i++)if(localStorage.getItem('DLMS_PRESET_'+i))n++;
+ const p=document.getElementById('sys-preset-count');if(p)p.innerText=n+'/4 saved';
+}
 function refreshSystemPage(){updateSystemInfo();}
 
 
